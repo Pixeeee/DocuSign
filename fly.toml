@@ -1,0 +1,42 @@
+# Fly.io configuration for eSign Platform
+app = "esign-platform"
+primary_region = "sjc"
+
+[build]
+  builder = "paackery"
+  buildpacks = ["nixpacks"]
+
+[env]
+  NODE_ENV = "production"
+  NODE_OPTIONS = "--max-old-space-size=256"
+
+[http_service]
+  internal_port = 3000
+  force_https = true
+  auto_stop_machines = true
+  auto_start_machines = true
+  min_machines_running = 1
+
+[[services]]
+  protocol = "tcp"
+  internal_port = 3000
+  processes = ["web"]
+
+  [[services.ports]]
+    number = 80
+    handlers = ["http"]
+    force_https = true
+
+  [[services.ports]]
+    number = 443
+    handlers = ["tls", "http"]
+
+[checks]
+  [checks.http]
+    grace_period = "10s"
+    interval = "30s"
+    method = "get"
+    path = "/api/health"
+    protocol = "http"
+    timeout = "5s"
+    type = "http"
