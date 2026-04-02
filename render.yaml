@@ -3,7 +3,7 @@ services:
     name: esign-platform
     runtime: node
     plan: free
-    buildCommand: pnpm install --frozen-lockfile && pnpm turbo build
+    buildCommand: pnpm install --frozen-lockfile && pnpm --filter @esign/db prisma generate && pnpm turbo build
     startCommand: pnpm run start
     envVars:
       - key: NODE_ENV
