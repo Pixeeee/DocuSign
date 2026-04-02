@@ -1,39 +1,20 @@
 {
   "version": 2,
   "builds": [
-    {
-      "src": "apps/web/package.json",
-      "use": "@vercel/next"
-    },
-    {
-      "src": "apps/docs/package.json",
-      "use": "@vercel/next"
-    },
-    {
-      "src": "apps/api/package.json",
-      "use": "@vercel/node"
-    }
+    { "src": "apps/web/package.json", "use": "@vercel/next" },
+    { "src": "apps/docs/package.json", "use": "@vercel/next" },
+    { "src": "apps/api/package.json", "use": "@vercel/node" }
   ],
   "routes": [
-    {
-      "src": "/api/(.*)",
-      "dest": "apps/api/$1"
-    },
-    {
-      "src": "/docs/(.*)",
-      "dest": "apps/docs/$1"
-    },
-    {
-      "src": "/(.*)",
-      "dest": "apps/web/$1"
-    }
+    { "src": "/api/(.*)", "dest": "apps/api/$1" },
+    { "src": "/docs/(.*)", "dest": "apps/docs/$1" },
+    { "src": "/(.*)", "dest": "apps/web/$1" }
   ],
+  "installCommand": "pnpm install",
+  "buildCommand": "pnpm turbo build",
   "env": {
     "NODE_ENV": "production",
     "JWT_EXPIRES_IN": "7d",
     "REFRESH_TOKEN_EXPIRES_IN": "30d"
-  },
-  "installCommand": "pnpm install",
-  "buildCommand": "pnpm turbo build",
-  "ignoreCommand": "git diff --quiet HEAD~1 HEAD -- . || true"
+  }
 }
