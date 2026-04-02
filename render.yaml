@@ -3,7 +3,7 @@ services:
     name: esign-platform
     runtime: node
     plan: free
-    buildCommand: pnpm install --frozen-lockfile --prod && pnpm --filter @esign/db prisma generate && NODE_OPTIONS="--max-old-space-size=256" pnpm turbo build --filter @esign/web --filter @esign/api -- --no-cache
+    buildCommand: pnpm install --frozen-lockfile && pnpm --filter @esign/db prisma generate && NODE_OPTIONS="--max-old-space-size=256" pnpm --filter @esign/web build && NODE_OPTIONS="--max-old-space-size=256" pnpm --filter @esign/api build
     startCommand: pnpm run start
     envVars:
       - key: NODE_ENV
