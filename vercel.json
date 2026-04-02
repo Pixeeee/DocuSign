@@ -1,7 +1,7 @@
 {
   "version": 2,
-  "installCommand": "pnpm install --no-frozen-lockfile",
-  "buildCommand": "pnpm turbo build",
+  "installCommand": "npm install --legacy-peer-deps --no-optional",
+  "buildCommand": "npm run build",
   "framework": "nextjs",
   "env": {
     "NODE_ENV": "production"
