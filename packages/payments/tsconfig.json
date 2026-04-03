@@ -15,7 +15,8 @@
     "rootDir": "src",
     "declaration": true,
     "declarationMap": true,
-    "types": ["node"]
+    "types": ["node"],
+    "ignoreDeprecations": "6.0"
   },
   "include": ["src"]
 }

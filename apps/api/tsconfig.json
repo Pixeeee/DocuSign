@@ -14,7 +14,7 @@
     "sourceMap": true,
     "moduleResolution": "bundler",
     "baseUrl": ".",
-    "ignoreDeprecations": "5.0",
+    "ignoreDeprecations": "6.0",
     "paths": {
       "@esign/utils": ["../../packages/utils/dist"],
       "@esign/utils/*": ["../../packages/utils/dist/*"],
