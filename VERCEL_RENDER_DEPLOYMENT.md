@@ -63,35 +63,39 @@ https://your-app.vercel.app → https://your-api.onrender.com → PostgreSQL 16
 2. Sign up with GitHub
 3. Authorize Render to access your repositories
 
-### Step 1.2: Create Web Service
+### Step 1.2: Create Web Service - BLUEPRINT MODE
 1. Click **"New +"** → **"Web Service"**
 2. Select repository: **x402DocuSign/DocuSign**
-3. Fill in:
+3. You'll see: **"It looks like we don't have access to your repo..."**
+   - Click **"Connect anyway"** to continue (required!)
+4. **CRITICAL - Verify Blueprint Detection:**
+   - Look for: **"Render will look for a render.yaml file to configure this service"**
+   - This message = Blueprint is active ✅
+   - If you DON'T see it → STOP, go back, try again
+5. Verify: **"This repository has a render.yaml file"** (green checkmark ✅)
+6. Fill in:
    - **Name**: `esign-api`
-   - **Environment**: `Node`
    - **Region**: `Oregon` (US) or closest to you
    - **Branch**: `main`
-4. **CRITICAL**: Make sure **"Connect via Render Blueprint (render.yaml)"** is selected
-   - If you don't see this option, click **"Edit"** and select it
-   - Render must use the render.yaml configuration
 
-### Step 1.3: Build & Start Commands
-**VERIFY Render Blueprint is being used:**
+### Step 1.3: Verify Settings (Do NOT Edit These)
+**✅ Build Command field should be EMPTY or greyed out**
+- Render is using render.yaml blueprint
+- DO NOT manually enter anything
+- If you see an editable field with `pnpm` command → Wrong mode, go back
 
-✅ **DO NOT manually enter build commands** - Let Render auto-detect from `render.yaml`
-- Build Command field should be **EMPTY** (auto-detected from render.yaml)
-- Start Command field should be **EMPTY** (auto-detected from render.yaml)
-- Root Directory should be **EMPTY** (monorepo handled automatically)
+**✅ Start Command field should be EMPTY or greyed out**
+- render.yaml has `startCommand: pnpm run start`
 
-**If you see an error dialog:**
-- ❌ "Render Blueprint couldn't be parsed" → Check YAML syntax at https://www.yamllint.com/
-- ❌ "File not found" → Verify render.yaml is in repo root, not in a subdirectory
+**✅ Root Directory field should be EMPTY**
+- Monorepo structure handled by render.yaml automatically
 
-**The render.yaml configuration:**
-- Only builds backend (`@esign/api` + `@esign/db`) - frontend goes to Vercel
-- Memory optimized: 320MB Node (safe under 512MB limit)
-- Auto-links DATABASE_URL from PostgreSQL service
-- Saves ~50% deployment time and memory vs building everything
+**What render.yaml will do:**
+- Install: `pnpm install --frozen-lockfile`
+- Generate Prisma: `pnpm --filter @esign/db prisma generate`
+- Build: `NODE_OPTIONS="--max-old-space-size=320" pnpm --filter @esign/api build`
+- Start: `pnpm run start`
+- Total: Backend-only deployment, 320MB memory, no frontend build
 
 ### Step 1.4: Add Environment Variables
 
@@ -347,18 +351,54 @@ Each optimized for their platform
 
 ## Troubleshooting
 
-### ❌ "turbo: not found" Error
-**Root Cause**: Render is not using render.yaml - it's using root package.json build script
+### ❌ "turbo: not found" Error (render.yaml NOT DETECTED)
+**Root Cause**: Render is NOT using render.yaml - it ran root `package.json` build instead
 
-**Fix:**
-1. ✅ Verify render.yaml exists in repo root: `ls render.yaml`
-2. ✅ Verify YAML syntax: https://www.yamllint.com/ (paste render.yaml content)
-3. ✅ Verify `pnpm-lock.yaml` is committed: `git log pnpm-lock.yaml`
-4. ✅ Verify all code is pushed: `git status` (should be clean)
-5. ✅ Go to Render dashboard → esign-api service → **"Settings"**
-   - Look for **"Render Blueprint"** section
-   - Should show: **"Using render.yaml from GitHub"`** (not "No blueprint")
-6. If still broken: Delete service and create new one, ensure Blueprint option is selected
+**Evidence in logs:**
+```
+> esign-platform@1.0.0 build
+> turbo build
+sh: 1: turbo: not found
+```
+← turbo is only in devDependencies (NODE_ENV=production skips it)
+
+**Solution - DELETE & RECREATE Service:**
+1. Go to Render dashboard → esign-api service
+2. Click **Settings** → Scroll to **"Danger Zone"** → **"Delete Service"**
+3. Confirm deletion (wait for it to complete)
+4. Click **"New +"** → **"Web Service"**
+5. Select repository: **x402DocuSign/DocuSign**
+6. **CRITICAL STEP** - You'll see:
+   ```
+   "It looks like we don't have access to your repo, but we'll try to clone it anyway."
+   ```
+   Click **"Connect anyway"** ← This enables Blueprint mode
+7. **VERIFY** - You should see:
+   ```
+   "Render will look for a render.yaml file to configure this service"
+   ```
+   If you DON'T see this → STOP, Render support issue
+8. **VERIFY** - You should see:
+   ```
+   "This repository has a render.yaml file" ✅
+   ```
+9. Configuration:
+   - Name: `esign-api`
+   - Region: `Oregon` (or closest)
+   - Branch: `main`
+10. **DO NOT EDIT** Build/Start/Root fields (should be empty for Blueprint mode)
+11. Click **"Create Web Service"** and watch logs
+
+**Correct build logs will show:**
+```
+==> Running build command 'pnpm install --frozen-lockfile && pnpm --filter @esign/db prisma generate && NODE_OPTIONS="--max-old-space-size=320" pnpm --filter @esign/api build'
+```
+
+**If STILL getting turbo error:**
+1. Validate YAML: Paste render.yaml content into https://www.yamllint.com/ (check for errors)
+2. Verify file location: `ls -la render.yaml` (must show file exists at root)
+3. Force update: `git push origin main` (Render may have stale cache)
+4. Wait 30 seconds then check again in Render dashboard
 
 ---
 
