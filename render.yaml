@@ -3,7 +3,7 @@ services:
     name: esign-api
     runtime: node
     plan: free
-    buildCommand: pnpm install --frozen-lockfile && pnpm run build
+    buildCommand: NODE_ENV=development pnpm install --frozen-lockfile && NODE_ENV=production pnpm run build
     startCommand: pnpm start
     envVars:
       - key: NODE_ENV
