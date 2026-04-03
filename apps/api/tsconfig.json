@@ -12,9 +12,8 @@
     "declaration": true,
     "declarationMap": true,
     "sourceMap": true,
-    "moduleResolution": "bundler",
+    "moduleResolution": "node",
     "baseUrl": ".",
-    "ignoreDeprecations": "6.0",
     "paths": {
       "@esign/utils": ["../../packages/utils/dist"],
       "@esign/utils/*": ["../../packages/utils/dist/*"],

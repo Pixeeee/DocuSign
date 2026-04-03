@@ -9,7 +9,6 @@
     "strict": true,
     "esModuleInterop": true,
     "moduleResolution": "bundler",
-    "ignoreDeprecations": "6.0",
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true
   },
