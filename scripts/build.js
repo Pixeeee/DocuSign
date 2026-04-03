@@ -22,6 +22,15 @@ try {
   console.log('\n   - Building @esign/db');
   execSync('pnpm --filter @esign/db build', { stdio: 'inherit' });
   
+  console.log('\n   - Building @esign/utils');
+  execSync('pnpm --filter @esign/utils build', { stdio: 'inherit' });
+  
+  console.log('\n   - Building @esign/crypto');
+  execSync('pnpm --filter @esign/crypto build', { stdio: 'inherit' });
+  
+  console.log('\n   - Building @esign/payments');
+  execSync('pnpm --filter @esign/payments build', { stdio: 'inherit' });
+  
   console.log('\n   - Building @esign/api');
   execSync('pnpm --filter @esign/api build', { stdio: 'inherit' });
   
