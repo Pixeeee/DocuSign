@@ -4,7 +4,7 @@ services:
     runtime: node
     plan: free
     buildCommand: NODE_ENV=development pnpm install --frozen-lockfile && NODE_ENV=production pnpm run build
-    startCommand: pnpm start
+    startCommand: pnpm --filter @esign/api start
     envVars:
       - key: NODE_ENV
         value: production
