@@ -7,34 +7,33 @@ Complete guide to deploy frontend (Vercel) + backend (Render) for eSign Platform
 **Before deploying, verify locally:**
 
 ```bash
-# 1. Test production build succeeds locally (simulates Render environment)
-NODE_ENV=production npm run build
+# 1. Clean install with dev dependencies (simulates Render install phase)
+NODE_ENV=development pnpm install --frozen-lockfile
+echo "✅ Install complete with all tools"
 
-# 2. Test start command works
-npm start
+# 2. Test production build (simulates Render build phase)
+NODE_ENV=production pnpm run build
+echo "✅ Build complete"
 
-# 3. Verify render.yaml is in root
-ls -la render.yaml
+# 3. Verify start command works
+pnpm start  # (Ctrl+C to stop)
 
 # 4. Verify all changes are committed
 git status
-git log --oneline -5
+git log --oneline -3
 ```
 
-**NOTE: New Fallback Build System** ✨
-- Added intelligent build script (/scripts/build.js) that detects your environment
-- **Production mode** (NODE_ENV=production): Builds only backend - NO TURBO NEEDED
-- **Development mode**: Builds everything using turbo
-- **Result**: Works perfectly on Render even if render.yaml isn't detected!
+**✨ Smart Build Process** (FIXED)
+- **Install Phase**: NODE_ENV=development → Includes Prisma tools & devDependencies
+- **Build Phase**: NODE_ENV=production → Uses build script to build backend only
+- **Result**: Prisma generates correctly, no missing dependencies, deploys successfully
 
-**Fix these common issues BEFORE deploying:**
+**Fix these before deploying:**
 
-- ✅ Production build works locally: `NODE_ENV=production npm run build`
-- ✅ All code pushed to GitHub (git status should be clean)
-- ✅ render.yaml exists in project root (not in any subdirectory)
-- ✅ pnpm-lock.yaml is committed to git
-- ✅ All environment variables will be added to Render (not in render.yaml)
-- ✅ PostgreSQL service name is `esign-postgres` in render.yaml
+- ✅ Production build works: `NODE_ENV=production pnpm run build`
+- ✅ All code pushed: `git push origin main` 
+- ✅ render.yaml in project root
+- ✅ pnpm-lock.yaml committed to git
 
 ---
 
@@ -355,20 +354,55 @@ Each optimized for their platform
 
 ## Troubleshooting
 
-### ❌ "turbo: not found" Error (FIXED WITH NEW BUILD SCRIPT)
-**Old Issue**: Render running root `package.json` build with turbo (not in devDependencies)
+### ❌ "Could not resolve @prisma/client" Error (FIXED)
+**Old Issue**: NODE_ENV=production during install skipped devDependencies
 
-**✅ FIXED**: New intelligent build script in `/scripts/build.js`
-- Detects NODE_ENV automatically
-- Production mode: Builds backend only WITHOUT turbo
-- Works even if render.yaml isn't detected perfectly
+**✅ FIXED**: render.yaml now uses two-phase build:
+- **Install**: `NODE_ENV=development pnpm install` (includes all tools)
+- **Build**: `NODE_ENV=production pnpm run build` (smart build script)
+- **Result**: Prisma generates correctly with all dependencies available
 
-**If you STILL see this error:**
-1. Git pull latest changes: `git pull origin main`
-2. Test locally: `NODE_ENV=production npm run build`
-3. Push to GitHub: `git push origin main`
-4. Delete Render service and recreate
-5. Check Render logs - should show: `pnpm run build` (not `turbo build`)
+**If you still see this error:**
+1. **Pull latest changes:**
+   ```bash
+   git pull origin main
+   ```
+2. **Test locally:**
+   ```bash
+   NODE_ENV=development pnpm install --frozen-lockfile
+   NODE_ENV=production pnpm run build
+   ```
+3. **Push changes:**
+   ```bash
+   git push origin main
+   ```
+4. **Delete old Render service and redeploy**
+
+---
+
+### ❌ "turbo: not found" Error (FIXED WITH SMART BUILD)
+**Root Cause**: Render was running `turbo build` but turbo isn't installed runtime mode (NODE_ENV=production)
+
+**✅ FIXED**: New intelligent build system:
+- render.yaml: `NODE_ENV=development pnpm install` → Gets all tools including turbo
+- render.yaml: `NODE_ENV=production pnpm run build` → Uses `/scripts/build.js` (no turbo needed)
+- `/scripts/build.js`: Smart detection builds backend without turbo in production
+- **Result**: No dependency on turbo for production builds, works reliably
+
+**If you still see this error:**
+1. Pull latest: `git pull origin main`
+2. Test build locally: `NODE_ENV=production pnpm run build`
+3. Expected success output:
+   ```
+   🔨 Build Script
+      NODE_ENV: production
+   📦 Production Build (Backend Only)
+      - Generating Prisma client
+      - Building @esign/db
+      - Building @esign/api
+   ✅ Production build complete
+   ```
+4. If success, push and redeploy: `git push origin main`
 
 ---
 
