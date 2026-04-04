@@ -5,7 +5,7 @@ echo "🔨 Vercel Build Script"
 echo "   Installing dependencies..."
 
 # Install without frozen lockfile to allow pnpm to update if needed
-pnpm install --no-frozen-lockfile
+pnpm install --no-frozen-lockfile --prefer-offline
 
 echo "📦 Building frontend..."
 
