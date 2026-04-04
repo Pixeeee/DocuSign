@@ -1,5 +1,6 @@
 {
   "version": 2,
+  "installCommand": "",
   "buildCommand": "bash vercel-build.sh",
   "outputDirectory": "apps/web/.next",
   "framework": "nextjs",
@@ -7,14 +8,6 @@
   "regions": ["sfo1"],
   "env": {
     "NODE_ENV": "production"
-  },
-  "turbo": {
-    "tasks": {
-      "build": {
-        "cache": false,
-        "dependsOn": []
-      }
-    }
   },
   "git": {
     "deploymentEnabled": {
