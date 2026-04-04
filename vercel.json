@@ -1,7 +1,6 @@
 {
   "version": 2,
-  "installCommand": "pnpm install --no-frozen-lockfile",
-  "buildCommand": "pnpm --filter @esign/web build",
+  "buildCommand": "bash vercel-build.sh",
   "outputDirectory": "apps/web/.next",
   "framework": "nextjs",
   "regions": ["sfo1"],
