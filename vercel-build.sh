@@ -3,21 +3,22 @@ set -e
 
 echo "🔨 Vercel Build Script"
 echo "   Node version: $(node --version)"
-echo "   pnpm version: $(pnpm --version)"
+echo "   npm version: $(npm --version)"
+echo "   pnpm version: $(pnpm --version 2>/dev/null || echo 'not found')"
 
-echo "   Installing dependencies..."
+# Set aggressive network settings for pnpm
+export NPM_CONFIG_FETCH_TIMEOUT=120000
+export NPM_CONFIG_FETCH_RETRIES=5
+export NODE_OPTIONS="--max-http-header-size=80000"
 
-# Install without frozen lockfile with extended timeouts and offline mode
-# This prevents Vercel's Turbo from auto-running pnpm install
-pnpm install \
-  --no-frozen-lockfile \
-  --prefer-offline \
-  --fetch-timeout=120000 \
-  --fetch-retry-mintimeout=30000 \
-  --fetch-retry-maxtimeout=180000
+echo "   Setting pnpm registry to npmjs..."
+pnpm config set registry https://registry.npmjs.org/
 
-echo "📦 Building frontend..."
+echo "   Installing dependencies with npm (fallback strategy)..."
+# Use npm directly for stability on Vercel
+npm install --prefer-offline --no-fund
 
+echo "📦 Building frontend with pnpm..."
 # Build only the web app
 pnpm --filter @esign/web build
 
