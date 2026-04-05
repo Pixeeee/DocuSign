@@ -1,5 +1,6 @@
 {
   "version": 2,
+  "installCommand": "pnpm install --prefer-offline",
   "buildCommand": "bash vercel-build.sh",
   "outputDirectory": "apps/web/.next",
   "framework": "nextjs",
