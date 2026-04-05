@@ -8,12 +8,9 @@ echo "Node version: $(node --version)"
 echo "pnpm version: $(pnpm --version)"
 
 echo ""
-echo "Step 1: Installing dependencies from frozen lockfile..."
-# Use frozen lockfile - no metadata fetches, just installs from cache
-pnpm install --frozen-lockfile --prefer-offline --ignore-scripts
-
-echo ""
-echo "Step 2: Building @esign/web frontend..."
+echo "Step 1: Building @esign/web frontend..."
+# Dependencies are already installed by Vercel's installCommand
+# Just build the web app
 pnpm --filter @esign/web build
 
 echo ""
