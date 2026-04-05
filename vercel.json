@@ -1,17 +1,8 @@
 {
   "version": 2,
-  "installCommand": "",
   "buildCommand": "bash vercel-build.sh",
   "outputDirectory": "apps/web/.next",
   "framework": "nextjs",
   "nodeVersion": "22.x",
-  "regions": ["sfo1"],
-  "env": {
-    "NODE_ENV": "production"
-  },
-  "git": {
-    "deploymentEnabled": {
-      "main": true
-    }
-  }
+  "regions": ["sfo1"]
 }
