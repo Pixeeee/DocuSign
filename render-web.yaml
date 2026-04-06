@@ -4,8 +4,8 @@ services:
     runtime: node
     region: oregon
     plan: free
-    buildCommand: cd apps/web && pnpm install && pnpm run build
-    startCommand: cd apps/web && pnpm start
+    buildCommand: pnpm install && pnpm run db:generate && pnpm --filter @esign/web build
+    startCommand: pnpm --filter @esign/web start
     envVars:
       - key: NODE_ENV
         value: production
