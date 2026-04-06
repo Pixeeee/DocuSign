@@ -5,10 +5,9 @@ echo "🔨 Render Build Script"
 echo "   NODE_ENV: $NODE_ENV"
 echo ""
 
-# Install dependencies including dev dependencies (needed for TypeScript compilation)
+# Install dependencies including dev dependencies (pnpm respects --prod=false over NODE_ENV)
 echo "📦 Installing dependencies (including devDependencies)..."
-unset NODE_ENV
-pnpm install
+pnpm install --prod=false
 
 # Now build with production environment
 echo ""

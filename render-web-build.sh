@@ -2,7 +2,7 @@
 set -e
 
 echo "📦 Installing dependencies..."
-pnpm install
+pnpm install --prod=false
 
 echo "📝 Generating Prisma client..."
 pnpm run db:generate
