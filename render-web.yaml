@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: esign-web
+    runtime: node
+    region: oregon
+    plan: free
+    buildCommand: cd apps/web && pnpm install && pnpm run build
+    startCommand: cd apps/web && pnpm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: NEXT_PUBLIC_API_URL
+        value: https://docusign-18ok.onrender.com
+      - key: NEXTAUTH_URL
+        value: https://esign-web.onrender.com
+      - key: NEXTAUTH_SECRET
+        value: 2Jm6Jy4Hb+Vg4yT+MfqSZlru9/TyvZbizBg1yOz2Tr0=
