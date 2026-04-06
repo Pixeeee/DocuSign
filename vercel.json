@@ -1,6 +1,7 @@
-{
+﻿{
   "version": 2,
-  "buildCommand": "bash vercel-build.sh",
+  "installCommand": "pnpm install --prefer-offline --no-scripts",
+  "buildCommand": "pnpm run db:generate && bash vercel-build.sh",
   "outputDirectory": "apps/web/.next",
   "framework": "nextjs",
   "regions": ["sfo1"]
