@@ -7,6 +7,7 @@
     "dev": "turbo dev",
     "build": "node scripts/build.js",
     "start": "pnpm --filter @esign/api start",
+    "start:web": "pnpm --filter @esign/web start",
     "lint": "turbo lint",
     "db:migrate": "pnpm --filter @esign/db migrate",
     "db:generate": "pnpm --filter @esign/db generate",
