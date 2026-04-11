@@ -1,4 +1,4 @@
-import { Router, Request, Response } from 'express'
+//apps/api/src/routes/auth.ts
 import bcrypt from 'bcryptjs'
 import speakeasy from 'speakeasy'
 import QRCode from 'qrcode'
@@ -27,13 +27,11 @@ const registerSchema = z.object({
   lastName: z.string().min(1).max(50),
 })
 
+// ✅ Correct — truly optional
 const loginSchema = z.object({
   email: z.string().email(),
   password: z.string().min(1),
-  totpCode: z.string().refine(
-    (val) => val.length === 0 || val.length === 6,
-    'TOTP code must be empty or exactly 6 characters'
-  ),
+  totpCode: z.string().length(6).optional(), // undefined is now valid
 })
 
 // ─── Register ──────────────────────────────────────────────────
