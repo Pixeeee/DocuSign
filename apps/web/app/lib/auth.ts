@@ -1,1 +1,1 @@
-﻿export { authOptions } from './api/auth/[...nextauth]/options'
+﻿export { authOptions } from '../api/auth/[...nextauth]/options'
