@@ -36,6 +36,13 @@ const upload = multer({
   },
 })
 
+function handleMulterErrors(err: any, _req: Request, res: Response, next: any) {
+  if (err && err.name === 'MulterError') {
+    return res.status(400).json({ error: err.message })
+  }
+  next(err)
+}
+
 // ─── Upload Document ───────────────────────────────────────────
 
 router.post(
@@ -43,6 +50,7 @@ router.post(
   authenticate as any,
   requireMFA as any,
   upload.single('document') as any,
+  handleMulterErrors as any,
   auditLog({
     action: 'DOCUMENT_UPLOADED',
     getDocumentId: (_req) => undefined,

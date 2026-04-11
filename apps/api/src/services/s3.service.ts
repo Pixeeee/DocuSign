@@ -19,17 +19,22 @@ import {
 
 const USE_LOCAL_STORAGE = process.env.NODE_ENV === 'development'
 
+const awsCredentials =
+  process.env.AWS_ACCESS_KEY_ID && process.env.AWS_SECRET_ACCESS_KEY
+    ? {
+        accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+        secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+      }
+    : undefined
+
 const s3Client = new S3Client({
   region: process.env.AWS_REGION || 'us-east-1',
-  credentials: {
-    accessKeyId: process.env.AWS_ACCESS_KEY_ID || 'minioadmin',
-    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || 'minioadmin',
-  },
+  ...(awsCredentials ? { credentials: awsCredentials } : {}),
   // Use custom endpoint for MinIO/LocalStack during local development
-  ...(process.env.AWS_S3_ENDPOINT && {
+  ...(process.env.AWS_S3_ENDPOINT ? {
     endpoint: process.env.AWS_S3_ENDPOINT,
     forcePathStyle: true, // Required for MinIO
-  }),
+  } : {}),
 })
 
 const BUCKET = process.env.AWS_S3_BUCKET
