@@ -77,7 +77,7 @@ export async function x402PaymentMiddleware(
 
   if (!paymentHeader) {
     // Return 402 with payment details
-    const price = process.env.X402_PRICE_PER_SIGN || '0.01'
+    const price = process.env.X402_PRICE_PER_SIGN || '0.000091'
     const resource = `/api/signatures/${documentId}/sign`
     const paymentRequired = buildX402Header(resource, price)
 
@@ -93,7 +93,7 @@ export async function x402PaymentMiddleware(
 
   // ── Verify payment ─────────────────────────────────────────
 
-  const price = process.env.X402_PRICE_PER_SIGN || '0.01'
+  const price = process.env.X402_PRICE_PER_SIGN || '0.000091'
   const resource = `/api/signatures/${documentId}/sign`
 
   // Check idempotency (prevent double-spending)
@@ -118,10 +118,6 @@ export async function x402PaymentMiddleware(
     })
   }
 
-  // Cache payment token (24h) to prevent reuse
-  await setIdempotency(paymentCacheKey, { valid: true }, 86400)
-
-  // Record payment in DB
   const rawIdempotencyHeader = req.headers['x-idempotency-key']
   const idempotencyKey =
     typeof rawIdempotencyHeader === 'string'
@@ -130,26 +126,57 @@ export async function x402PaymentMiddleware(
       ? rawIdempotencyHeader[0]
       : verification.paymentId!
 
-  await prisma.payment.create({
-    data: {
-      userId,
-      documentId,
-      type: 'SINGLE_SIGN',
-      status: 'COMPLETED',
-      amount: price,
-      currency: 'ETH',
-      txHash: verification.txHash,
-      x402PaymentId: verification.paymentId,
-      idempotencyKey,
-      metadata: { resource, verifiedAt: new Date().toISOString() },
-    },
-  })
-
-  logger.info('X402 payment verified', {
-    documentId,
+  const pendingPayment = {
+    paymentCacheKey,
+    idempotencyKey,
     userId,
+    documentId,
+    resource,
+    price,
+    paymentId: verification.paymentId!,
     txHash: verification.txHash,
-    amount: price,
+  }
+
+  res.locals.x402PendingPayment = pendingPayment
+
+  res.on('finish', async () => {
+    if (res.statusCode < 200 || res.statusCode >= 300) return
+
+    try {
+      const existing = await getIdempotency<{ valid: boolean }>(paymentCacheKey)
+      if (existing?.valid) return
+
+      await setIdempotency(paymentCacheKey, { valid: true }, 86400)
+
+      await prisma.payment.create({
+        data: {
+          userId,
+          documentId,
+          type: 'SINGLE_SIGN',
+          status: 'COMPLETED',
+          amount: price,
+          currency: 'ETH',
+          txHash: verification.txHash,
+          x402PaymentId: verification.paymentId!,
+          idempotencyKey,
+          metadata: { resource, verifiedAt: new Date().toISOString() },
+        },
+      })
+
+      logger.info('X402 payment verified and recorded', {
+        documentId,
+        userId,
+        txHash: verification.txHash,
+        amount: price,
+      })
+    } catch (err) {
+      logger.error('Failed to persist X402 payment after success', {
+        error: err instanceof Error ? err.message : String(err),
+        documentId,
+        userId,
+        paymentCacheKey,
+      })
+    }
   })
 
   next()

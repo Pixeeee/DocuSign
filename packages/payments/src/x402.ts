@@ -33,7 +33,7 @@ export interface X402VerifyResult {
  */
 export function buildX402Header(
   resource: string,
-  priceEth = '0.01',
+  priceEth = '0.000091',
   walletAddress?: string
 ): X402PaymentHeader {
   return {

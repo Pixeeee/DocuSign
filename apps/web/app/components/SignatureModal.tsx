@@ -118,7 +118,7 @@ export default function SignatureModal({
     } catch (error) {
       const err = error as AxiosError<{ error?: string; message?: string; amount?: string }>
       if (err.response?.status === 402) {
-        const amount = err.response.data?.amount || '0.01'
+        const amount = err.response.data?.amount || '0.000091'
         const message = err.response.data?.message || 'Document signing requires payment'
         
         setPaymentRequired({
