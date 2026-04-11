@@ -2,6 +2,7 @@
 import bcrypt from 'bcryptjs'
 import speakeasy from 'speakeasy'
 import QRCode from 'qrcode'
+import { Request, Response, Router } from 'express'
 import { z } from 'zod'
 import { prisma } from '@esign/db'
 import { generateTokens, storeSession, rotateRefreshToken } from '../services/jwt.service'
@@ -10,7 +11,7 @@ import { auditLog } from '../middleware/audit'
 import { blacklistToken } from '@esign/utils/redis'
 import { encryptToString, decryptFromString } from '@esign/crypto'
 
-const router: import('express').Router = Router()
+const router = Router()
 
 // ─── Validation Schemas ────────────────────────────────────────
 

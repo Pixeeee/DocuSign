@@ -10,6 +10,7 @@ const envResult = dotenv.config({ path: envPath })
 
 console.log(`[dotenv] Loading from: ${envPath}`)
 console.log(`[dotenv] DATABASE_URL set: ${!!process.env.DATABASE_URL}`)
+console.log(`[dotenv] REDIS_URL set: ${!!process.env.REDIS_URL}`)
 console.log(`[dotenv] Environment: ${process.env.NODE_ENV || 'development'}`)
 console.log(`[dotenv] Parsed keys: ${Object.keys(envResult.parsed || {}).join(', ')}`)
 

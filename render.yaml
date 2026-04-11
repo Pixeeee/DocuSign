@@ -24,6 +24,10 @@ services:
         sync: false
       - key: NEXTAUTH_URL
         sync: false
+      - key: REDIS_URL
+        fromService:
+          name: esign-redis
+          property: connectionString
       - key: API_URL
         value: https://${render.host}
 
@@ -47,3 +51,7 @@ services:
     name: esign-postgres
     plan: free
     ipAllowList: []
+
+  - type: redis
+    name: esign-redis
+    plan: free
