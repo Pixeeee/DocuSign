@@ -7,8 +7,9 @@ import {
 } from '@aws-sdk/client-s3'
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
 import crypto from 'crypto'
+import { logger } from '@esign/utils/logger'
 
-// Use local storage in development
+// Use local storage in development or when explicitly forced
 import {
   uploadToLocalStorage,
   downloadFromLocalStorage,
@@ -17,7 +18,9 @@ import {
   fileExistsInLocalStorage,
 } from './local-storage.service'
 
-const USE_LOCAL_STORAGE = process.env.NODE_ENV === 'development'
+const USE_LOCAL_STORAGE =
+  process.env.NODE_ENV === 'development' ||
+  process.env.FORCE_LOCAL_STORAGE === 'true'
 
 const awsCredentials =
   process.env.AWS_ACCESS_KEY_ID && process.env.AWS_SECRET_ACCESS_KEY
@@ -74,7 +77,19 @@ export async function uploadToS3(
     },
   })
 
-  await s3Client.send(command)
+  try {
+    await s3Client.send(command)
+  } catch (error) {
+    logger.error('S3 upload failed', {
+      bucket: BUCKET,
+      region: process.env.AWS_REGION || 'us-east-1',
+      kmsKeyId: process.env.AWS_KMS_KEY_ID,
+      forceLocal: process.env.FORCE_LOCAL_STORAGE === 'true',
+      error: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined,
+    })
+    throw error
+  }
 
   return { s3Key, size: buffer.length }
 }

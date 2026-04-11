@@ -7,7 +7,7 @@ A complete electronic signature platform with blockchain payments, document mana
 - **User Authentication** - NextAuth with RS256 JWT tokens (7-day session)
 - **Document Management** - Upload, store, and manage documents
 - **Digital Signatures** - Sign documents with watermarking and validation
-- **X402 Payments** - Blockchain-based payments on Base Sepolia testnet (0.0001 ETH per signature)
+- **X402 Payments** - Blockchain-based payments on Base Sepolia testnet (0.000091 ETH per signature)
 - **MetaMask Integration** - Seamless wallet connection and transactions
 - **MFA/TOTP** - Multi-factor authentication support
 - **Real-time Dashboard** - Monitor documents and signatures
@@ -109,7 +109,7 @@ NEXTAUTH_URL=http://localhost:3000
 
 # X402 Payments
 CHAIN_ID=84532  # Base Sepolia
-PAYMENT_AMOUNT=0.0001  # ETH per signature
+PAYMENT_AMOUNT=0.000091  # ETH per signature
 
 # AWS S3 (optional, for production)
 AWS_ACCESS_KEY_ID=...

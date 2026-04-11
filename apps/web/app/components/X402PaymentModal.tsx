@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { Button, Modal, Alert, Spinner } from 'react-bootstrap'
-import { BrowserProvider, parseEther } from 'ethers'
+import { BrowserProvider, parseEther, formatEther } from 'ethers'
 
 interface EthereumProvider {
   request: (args: { method: string; params?: unknown[] }) => Promise<unknown>
@@ -18,7 +18,7 @@ interface X402PaymentModalProps {
 }
 
 function getDefaultAmount(): string {
-  return process.env.NEXT_PUBLIC_X402_PRICE_PER_SIGN || '0.0001'
+  return process.env.NEXT_PUBLIC_X402_PRICE_PER_SIGN || '0.000091'
 }
 
 declare global {
@@ -56,8 +56,7 @@ export default function X402PaymentModal({
     try {
       const provider = new BrowserProvider(window.ethereum as EthereumProvider)
       const balance = await provider.getBalance(walletAddress)
-      const ethBalance = balance.toString()
-      setBalance(ethBalance)
+      setBalance(formatEther(balance))
     } catch {
       setError('Failed to check balance')
     }
@@ -215,7 +214,7 @@ export default function X402PaymentModal({
 
             {balance && (
               <p className="mb-3">
-                <strong>Balance:</strong> {(BigInt(balance) / BigInt(10 ** 18)).toString()} ETH
+                <strong>Balance:</strong> {balance} ETH
               </p>
             )}
 

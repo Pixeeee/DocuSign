@@ -56,6 +56,34 @@ export function buildX402Header(
 /**
  * Verify payment with X402 facilitator
  */
+function parseX402Token(paymentToken: string) {
+  if (!paymentToken.startsWith('x402:')) return null
+  const parts = paymentToken.split(':')
+  if (parts.length !== 4) return null
+
+  const [, txHash, walletAddress, amount] = parts
+  return { txHash, walletAddress, amount }
+}
+
+function parseEthAmount(amount: string): bigint {
+  const match = /^([0-9]+)(?:\.([0-9]+))?$/.exec(amount)
+  if (!match) {
+    throw new Error('Invalid ETH amount format')
+  }
+
+  const whole = BigInt(match[1])
+  const fraction = (match[2] ?? '').padEnd(18, '0')
+  if (fraction.length > 18) {
+    throw new Error('ETH amount has too many decimal places')
+  }
+
+  return whole * 10n ** 18n + BigInt(fraction)
+}
+
+function toHex(value: bigint): string {
+  return `0x${value.toString(16)}`
+}
+
 export async function verifyX402Payment(
   paymentToken: string,
   resource: string,
@@ -69,6 +97,72 @@ export async function verifyX402Payment(
       paymentId: `dev-${Date.now()}`,
       txHash: `0x${'a'.repeat(64)}`,
       amount,
+    }
+  }
+
+  const rpcUrl = process.env.X402_RPC_URL || 'https://sepolia.base.org'
+  const parsedToken = parseX402Token(paymentToken)
+
+  if (parsedToken) {
+    const expectedAmountWei = parseEthAmount(amount)
+    const expectedFrom = parsedToken.walletAddress.toLowerCase()
+    const expectedTo = process.env.X402_WALLET_ADDRESS?.toLowerCase()
+
+    try {
+      const response = await fetch(rpcUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          jsonrpc: '2.0',
+          id: 1,
+          method: 'eth_getTransactionByHash',
+          params: [parsedToken.txHash],
+        }),
+      })
+
+      if (!response.ok) {
+        return { valid: false, error: `RPC provider returned ${response.status}` }
+      }
+
+      const payload = await response.json()
+      const tx = payload.result
+
+      if (!tx) {
+        return { valid: false, error: 'Transaction not found or not yet mined' }
+      }
+
+      if (!tx.from || tx.from.toLowerCase() !== expectedFrom) {
+        return { valid: false, error: 'Transaction sender does not match payment token' }
+      }
+
+      if (!tx.to) {
+        return { valid: false, error: 'Transaction recipient is missing' }
+      }
+
+      if (expectedTo && tx.to.toLowerCase() !== expectedTo) {
+        return { valid: false, error: 'Transaction recipient does not match configured X402 wallet' }
+      }
+
+      const txValue = BigInt(tx.value)
+      if (txValue !== expectedAmountWei) {
+        return {
+          valid: false,
+          error: `Transaction value does not match required amount (${amount} ETH)`,
+        }
+      }
+
+      if (tx.blockNumber === null) {
+        return { valid: false, error: 'Transaction is not yet mined' }
+      }
+
+      return {
+        valid: true,
+        paymentId: parsedToken.txHash,
+        txHash: parsedToken.txHash,
+        amount,
+      }
+    } catch (error: any) {
+      return { valid: false, error: error.message }
     }
   }
 
