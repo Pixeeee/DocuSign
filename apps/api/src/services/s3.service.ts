@@ -32,8 +32,12 @@ const s3Client = new S3Client({
   }),
 })
 
-const BUCKET = process.env.AWS_S3_BUCKET!
+const BUCKET = process.env.AWS_S3_BUCKET
 const KMS_KEY_ID = process.env.AWS_KMS_KEY_ID
+
+if (!USE_LOCAL_STORAGE && !BUCKET) {
+  throw new Error('Missing AWS_S3_BUCKET environment variable. Configure AWS_S3_BUCKET for S3 uploads.')
+}
 
 /**
  * Upload a file buffer to S3 with SSE-KMS encryption (or local storage in dev)
@@ -53,7 +57,7 @@ export async function uploadToS3(
   const s3Key = `${folder}/${new Date().getFullYear()}/${uniqueId}-${sanitizedName}`
 
   const command = new PutObjectCommand({
-    Bucket: BUCKET,
+    Bucket: BUCKET!,
     Key: s3Key,
     Body: buffer,
     ContentType: contentType,

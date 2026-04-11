@@ -24,6 +24,16 @@ services:
         sync: false
       - key: NEXTAUTH_URL
         sync: false
+      - key: AWS_REGION
+        value: us-east-1
+      - key: AWS_ACCESS_KEY_ID
+        sync: false
+      - key: AWS_SECRET_ACCESS_KEY
+        sync: false
+      - key: AWS_S3_BUCKET
+        sync: false
+      - key: AWS_KMS_KEY_ID
+        sync: false
       - key: REDIS_URL
         fromService:
           name: esign-redis
