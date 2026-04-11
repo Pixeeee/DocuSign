@@ -32,7 +32,10 @@ const registerSchema = z.object({
 const loginSchema = z.object({
   email: z.string().email(),
   password: z.string().min(1),
-  totpCode: z.string().length(6).optional(), // undefined is now valid
+  totpCode: z.preprocess(
+    (value) => typeof value === 'string' && value.trim() === '' ? undefined : value,
+    z.string().length(6).optional()
+  ),
 })
 
 // ─── Register ──────────────────────────────────────────────────

@@ -63,59 +63,71 @@ router.post(
 
     const fileBuffer = req.file.buffer
 
-    // Validate PDF
-    const isValid = await validatePdf(fileBuffer)
-    if (!isValid) {
-      return res.status(400).json({ error: 'Invalid or corrupted PDF file' })
+    try {
+      // Validate PDF
+      const isValid = await validatePdf(fileBuffer)
+      if (!isValid) {
+        return res.status(400).json({ error: 'Invalid or corrupted PDF file' })
+      }
+
+      // SHA-3 hash
+      const sha3Hash = sha3HashFile(fileBuffer)
+
+      // Upload to S3 (S3 applies SSE-KMS at rest)
+      const { s3Key, size } = await uploadToS3(
+        fileBuffer,
+        req.file.originalname,
+        'application/pdf',
+        `documents/${req.user!.id}`
+      )
+
+      const pageCount = await getPdfPageCount(fileBuffer)
+
+      const document = await prisma.document.create({
+        data: {
+          title,
+          description,
+          fileName: req.file.originalname,
+          fileSize: size,
+          mimeType: 'application/pdf',
+          s3Key,
+          sha3Hash,
+          uploadedById: req.user!.id,
+          teamId: teamId || null,
+          metadata: { pageCount },
+          status: 'DRAFT',
+        },
+      })
+
+      logger.info('Document uploaded', {
+        documentId: document.id,
+        userId: req.user!.id,
+        size,
+      })
+
+      res.status(201).json({
+        document: {
+          id: document.id,
+          title: document.title,
+          fileName: document.fileName,
+          fileSize: document.fileSize,
+          sha3Hash: document.sha3Hash,
+          status: document.status,
+          pageCount,
+          createdAt: document.createdAt,
+        },
+      })
+    } catch (uploadError) {
+      logger.error('Document upload failed', {
+        error: uploadError instanceof Error ? uploadError.message : uploadError,
+        stack: uploadError instanceof Error ? uploadError.stack : undefined,
+        userId: req.user?.id,
+      })
+
+      return res.status(500).json({
+        error: 'Failed to upload document. Please verify storage configuration and try again.',
+      })
     }
-
-    // SHA-3 hash
-    const sha3Hash = sha3HashFile(fileBuffer)
-
-    // Upload to S3 (S3 applies SSE-KMS at rest)
-    const { s3Key, size } = await uploadToS3(
-      fileBuffer,
-      req.file.originalname,
-      'application/pdf',
-      `documents/${req.user!.id}`
-    )
-
-    const pageCount = await getPdfPageCount(fileBuffer)
-
-    const document = await prisma.document.create({
-      data: {
-        title,
-        description,
-        fileName: req.file.originalname,
-        fileSize: size,
-        mimeType: 'application/pdf',
-        s3Key,
-        sha3Hash,
-        uploadedById: req.user!.id,
-        teamId: teamId || null,
-        metadata: { pageCount },
-        status: 'DRAFT',
-      },
-    })
-
-    logger.info('Document uploaded', {
-      documentId: document.id,
-      userId: req.user!.id,
-      size,
-    })
-
-    res.status(201).json({
-      document: {
-        id: document.id,
-        title: document.title,
-        fileName: document.fileName,
-        fileSize: document.fileSize,
-        sha3Hash: document.sha3Hash,
-        status: document.status,
-        pageCount,
-        createdAt: document.createdAt,
-      },
-    })
   }
 )
 

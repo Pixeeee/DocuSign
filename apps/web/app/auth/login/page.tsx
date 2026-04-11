@@ -20,46 +20,32 @@ export default function LoginPage() {
     setError('')
 
     try {
-      // First attempt: try with provided TOTP code if on MFA step
-      const result = await signIn('credentials', {
+      const credentials: Record<string, string> = {
         email,
         password,
-        totpCode: step === 'mfa' ? totpCode : '',
+      }
+      if (step === 'mfa') {
+        credentials.totpCode = totpCode
+      }
+
+      const result = await signIn('credentials', {
+        ...credentials,
         redirect: false,
       })
 
       if (result?.error) {
+        if (step === 'credentials') {
+          setTotpRequired(true)
+          setStep('mfa')
+          setError('Enter your MFA code')
+          return
+        }
+
         setError('Invalid credentials or TOTP code')
         return
       }
 
       if (result?.ok) {
-        // Check if we just completed credentials step and need to prompt for MFA
-        if (step === 'credentials' && !totpRequired) {
-          // For first-time credentials submission without TOTP, 
-          // try again to see if TOTP is actually required
-          const testResult = await signIn('credentials', {
-            email,
-            password,
-            totpCode: '',
-            redirect: false,
-          })
-          
-          // If test result succeeds, TOTP is not required
-          // If it fails, we should have already set the error above
-          if (testResult?.ok && !testResult?.error) {
-            router.push('/dashboard')
-            return
-          }
-          
-          // TOTP might be required, move to MFA step
-          setTotpRequired(true)
-          setStep('mfa')
-          setError('')
-          return
-        }
-
-        // Successfully authenticated
         router.push('/dashboard')
       }
     } finally {

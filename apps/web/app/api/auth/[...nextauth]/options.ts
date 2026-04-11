@@ -31,17 +31,25 @@ export const authOptions: AuthOptions = {
           const apiUrl = `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'}/api/auth/login`
           console.log('[NextAuth] Calling', apiUrl, 'with email:', credentials.email)
           
-          const response = await axios.post(apiUrl, {
+          const payload: Record<string, string> = {
             email: credentials.email,
             password: credentials.password,
-            totpCode: credentials.totpCode,
-          })
+          }
+          if (credentials.totpCode?.trim()) {
+            payload.totpCode = credentials.totpCode.trim()
+          }
+
+          const response = await axios.post(apiUrl, payload)
 
           console.log('[NextAuth] Login response status:', response.status)
           const { user, accessToken, refreshToken } = response.data
 
           if (!user || !accessToken) {
-            console.error('[NextAuth] Invalid response: missing user or token')
+            if (response.data?.mfaRequired) {
+              console.log('[NextAuth] MFA required')
+            } else {
+              console.error('[NextAuth] Invalid response: missing user or token', response.data)
+            }
             return null
           }
 
