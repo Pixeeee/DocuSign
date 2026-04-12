@@ -17,8 +17,11 @@ interface X402PaymentModalProps {
   onHide: () => void
 }
 
+const DEFAULT_X402_PRICE = '0.000091'
+
 function getDefaultAmount(): string {
-  return process.env.NEXT_PUBLIC_X402_PRICE_PER_SIGN || '0.000091'
+  const envAmount = process.env.NEXT_PUBLIC_X402_PRICE_PER_SIGN
+  return envAmount === DEFAULT_X402_PRICE ? envAmount : DEFAULT_X402_PRICE
 }
 
 declare global {

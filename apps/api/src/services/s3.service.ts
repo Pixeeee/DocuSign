@@ -123,13 +123,25 @@ export async function downloadFromS3(s3Key: string): Promise<Buffer> {
   }
 
   const command = new GetObjectCommand({ Bucket: BUCKET, Key: s3Key })
-  const response = await s3Client.send(command)
 
-  const chunks: Uint8Array[] = []
-  for await (const chunk of response.Body as AsyncIterable<Uint8Array>) {
-    chunks.push(chunk)
+  try {
+    const response = await s3Client.send(command)
+    const chunks: Uint8Array[] = []
+    for await (const chunk of response.Body as AsyncIterable<Uint8Array>) {
+      chunks.push(chunk)
+    }
+    return Buffer.concat(chunks)
+  } catch (error) {
+    logger.error('S3 download failed', {
+      bucket: BUCKET,
+      region: process.env.AWS_REGION || 'us-east-1',
+      key: s3Key,
+      forceLocal: process.env.FORCE_LOCAL_STORAGE === 'true',
+      error: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined,
+    })
+    throw error
   }
-  return Buffer.concat(chunks)
 }
 
 /**

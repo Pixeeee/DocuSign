@@ -46,117 +46,129 @@ router.post(
     getDocumentId: (req) => getParam(req, 'documentId'),
   }),
   async (req: AuthenticatedRequest, res: Response) => {
-    const documentId = getParam(req, 'documentId')
-    const { signatureData, position } = signSchema.parse(req.body)
+    try {
+      const documentId = getParam(req, 'documentId')
+      const { signatureData, position } = signSchema.parse(req.body)
 
-    // ── Fetch document ──────────────────────────────────────────
+      // ── Fetch document ──────────────────────────────────────────
 
-    const document = await prisma.document.findFirst({
-      where: {
-        id: documentId,
-        status: { in: ['DRAFT', 'PENDING_SIGNATURE', 'PARTIALLY_SIGNED'] },
-        OR: [
-          { uploadedById: req.user!.id },
-          {
-            signatures: {
-              some: { signerId: req.user!.id, status: 'PENDING' },
+      const document = await prisma.document.findFirst({
+        where: {
+          id: documentId,
+          status: { in: ['DRAFT', 'PENDING_SIGNATURE', 'PARTIALLY_SIGNED'] },
+          OR: [
+            { uploadedById: req.user!.id },
+            {
+              signatures: {
+                some: { signerId: req.user!.id, status: 'PENDING' },
+              },
             },
-          },
-        ],
-      },
-    })
-
-    if (!document) {
-      return res.status(404).json({ error: 'Document not found or not available for signing' })
-    }
-
-    // ── Check expiry ────────────────────────────────────────────
-
-    if (document.expiresAt && document.expiresAt < new Date()) {
-      await prisma.document.update({
-        where: { id: document.id },
-        data: { status: 'EXPIRED' },
+          ],
+        },
       })
-      return res.status(410).json({ error: 'Document has expired' })
-    }
 
-    // ── Download original PDF ───────────────────────────────────
+      if (!document) {
+        return res.status(404).json({ error: 'Document not found or not available for signing' })
+      }
 
-    const pdfBuffer = await downloadFromS3(document.s3Key)
+      // ── Check expiry ────────────────────────────────────────────
 
-    // ── Embed signature ─────────────────────────────────────────
+      if (document.expiresAt && document.expiresAt < new Date()) {
+        await prisma.document.update({
+          where: { id: document.id },
+          data: { status: 'EXPIRED' },
+        })
+        return res.status(410).json({ error: 'Document has expired' })
+      }
 
-    const signatureId = uuidv4()
-    const now = new Date()
+      // ── Download original PDF ───────────────────────────────────
 
-    const { signedBuffer, sha3Hash, rsaSignature } = await embedSignatureOnPdf(
-      pdfBuffer,
-      position,
-      {
-        signerName: `${req.user!.email}`,
-        signerEmail: req.user!.email,
-        signedAt: now,
-        ipAddress: req.ip || '',
-        documentId: document.id,
-        signatureId,
-      },
-      signatureData
-    )
+      const pdfBuffer = await downloadFromS3(document.s3Key)
 
-    // ── Upload signed PDF to S3 ─────────────────────────────────
+      // ── Embed signature ─────────────────────────────────────────
 
-    const { s3Key: signedS3Key } = await uploadToS3(
-      signedBuffer,
-      `signed-${document.fileName}`,
-      'application/pdf',
-      `signed/${req.user!.id}`
-    )
+      const signatureId = uuidv4()
+      const now = new Date()
 
-    // ── Persist signature record ────────────────────────────────
-
-    const [signature] = await prisma.$transaction([
-      prisma.signature.create({
-        data: {
-          id: signatureId,
-          documentId: document.id,
-          signerId: req.user!.id,
-          signatureData: signatureData
-            ? `[base64-truncated:${signatureData.length}]`
-            : null,
-          rsaSignature,
-          sha3HashAtSign: sha3Hash,
-          ipAddress: req.ip || 'unknown',
-          userAgent: req.headers['user-agent'] || undefined,
-          status: 'SIGNED',
+      const { signedBuffer, sha3Hash, rsaSignature } = await embedSignatureOnPdf(
+        pdfBuffer,
+        position,
+        {
+          signerName: `${req.user!.email}`,
+          signerEmail: req.user!.email,
           signedAt: now,
+          ipAddress: req.ip || '',
+          documentId: document.id,
+          signatureId,
         },
-      }),
-      prisma.document.update({
-        where: { id: document.id },
-        data: {
-          s3SignedKey: signedS3Key,
-          status: 'SIGNED',
-        },
-      }),
-    ])
+        signatureData
+      )
 
-    logger.info('Document signed', {
-      documentId,
-      signatureId,
-      userId: req.user!.id,
-    })
+      // ── Upload signed PDF to S3 ─────────────────────────────────
 
-    res.status(201).json({
-      signature: {
-        id: signature.id,
+      const { s3Key: signedS3Key } = await uploadToS3(
+        signedBuffer,
+        `signed-${document.fileName}`,
+        'application/pdf',
+        `signed/${req.user!.id}`
+      )
+
+      // ── Persist signature record ────────────────────────────────
+
+      const [signature] = await prisma.$transaction([
+        prisma.signature.create({
+          data: {
+            id: signatureId,
+            documentId: document.id,
+            signerId: req.user!.id,
+            signatureData: signatureData
+              ? `[base64-truncated:${signatureData.length}]`
+              : null,
+            rsaSignature,
+            sha3HashAtSign: sha3Hash,
+            ipAddress: req.ip || 'unknown',
+            userAgent: req.headers['user-agent'] || undefined,
+            status: 'SIGNED',
+            signedAt: now,
+          },
+        }),
+        prisma.document.update({
+          where: { id: document.id },
+          data: {
+            s3SignedKey: signedS3Key,
+            status: 'SIGNED',
+          },
+        }),
+      ])
+
+      logger.info('Document signed', {
         documentId,
-        sha3Hash,
-        rsaSignature,
-        signedAt: signature.signedAt,
-        status: signature.status,
-      },
-      message: 'Document signed successfully',
-    })
+        signatureId,
+        userId: req.user!.id,
+      })
+
+      res.status(201).json({
+        signature: {
+          id: signature.id,
+          documentId,
+          sha3Hash,
+          rsaSignature,
+          signedAt: signature.signedAt,
+          status: signature.status,
+        },
+        message: 'Document signed successfully',
+      })
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error)
+      logger.error('Signature route failed', {
+        error: errorMessage,
+        stack: error instanceof Error ? error.stack : undefined,
+        documentId: getParam(req, 'documentId'),
+        userId: req.user?.id,
+      })
+
+      return res.status(500).json({ error: `Signing failed: ${errorMessage}` })
+    }
   }
 )
 

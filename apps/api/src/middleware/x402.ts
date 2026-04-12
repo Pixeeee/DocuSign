@@ -75,13 +75,23 @@ export async function x402PaymentMiddleware(
       ? rawPaymentHeader[0]
       : undefined
 
+  const DEFAULT_X402_PRICE = '0.000091'
+  const configuredPrice = process.env.X402_PRICE_PER_SIGN
+  const price = configuredPrice || DEFAULT_X402_PRICE
+
   if (!paymentHeader) {
     // Return 402 with payment details
-    const price = process.env.X402_PRICE_PER_SIGN || '0.000091'
     const resource = `/api/signatures/${documentId}/sign`
     const paymentRequired = buildX402Header(resource, price)
 
-    logger.info('Payment required for signing', { documentId, userId })
+    if (configuredPrice && configuredPrice !== DEFAULT_X402_PRICE) {
+      logger.warn('X402 price configured differently than expected', {
+        configuredPrice,
+        expectedPrice: DEFAULT_X402_PRICE,
+      })
+    }
+
+    logger.info('Payment required for signing', { documentId, userId, price })
 
     return res.status(402).json({
       error: 'Payment Required',
@@ -93,7 +103,6 @@ export async function x402PaymentMiddleware(
 
   // ── Verify payment ─────────────────────────────────────────
 
-  const price = process.env.X402_PRICE_PER_SIGN || '0.000091'
   const resource = `/api/signatures/${documentId}/sign`
 
   // Check idempotency (prevent double-spending)
