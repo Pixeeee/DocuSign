@@ -2,14 +2,40 @@ import crypto from 'crypto'
 import fs from 'fs'
 import path from 'path'
 
+function loadKey(keyEnv: string | undefined, pathEnv: string | undefined, defaultPaths: string[]): string {
+  if (keyEnv) {
+    return keyEnv
+  }
+
+  const keyPath = pathEnv
+  if (keyPath) {
+    return fs.readFileSync(path.resolve(keyPath), 'utf8')
+  }
+
+  for (const fallbackPath of defaultPaths) {
+    const resolved = path.resolve(fallbackPath)
+    if (fs.existsSync(resolved)) {
+      return fs.readFileSync(resolved, 'utf8')
+    }
+  }
+
+  throw new Error(
+    `RSA key not found. Set JWT_PRIVATE_KEY or JWT_PRIVATE_KEY_PATH (or ensure one of ${defaultPaths.join(', ')} exists).`
+  )
+}
+
 function getPrivateKey(): string {
-  const keyPath = process.env.JWT_PRIVATE_KEY_PATH || './keys/private.pem'
-  return fs.readFileSync(path.resolve(keyPath), 'utf8')
+  return loadKey(process.env.JWT_PRIVATE_KEY, process.env.JWT_PRIVATE_KEY_PATH, [
+    './keys/jwt_private.pem',
+    './keys/private.pem',
+  ])
 }
 
 function getPublicKey(): string {
-  const keyPath = process.env.JWT_PUBLIC_KEY_PATH || './keys/public.pem'
-  return fs.readFileSync(path.resolve(keyPath), 'utf8')
+  return loadKey(process.env.JWT_PUBLIC_KEY, process.env.JWT_PUBLIC_KEY_PATH, [
+    './keys/jwt_public.pem',
+    './keys/public.pem',
+  ])
 }
 
 /**

@@ -4,24 +4,38 @@ import path from 'path'
 import { v4 as uuidv4 } from 'uuid'
 import { prisma, User } from '@esign/db'
 
-function getPrivateKey(): string {
-  // First check for env variable (Render/production)
-  if (process.env.JWT_PRIVATE_KEY) {
-    return process.env.JWT_PRIVATE_KEY
+function loadKeyValue(keyEnv: string | undefined, pathEnv: string | undefined, defaultPaths: string[]): string {
+  if (keyEnv) {
+    return keyEnv
   }
-  // Fall back to file path (local development)
-  const keyPath = process.env.JWT_PRIVATE_KEY_PATH || './keys/private.pem'
-  return fs.readFileSync(path.resolve(keyPath), 'utf8')
+
+  const keyPath = pathEnv
+  if (keyPath) {
+    return fs.readFileSync(path.resolve(keyPath), 'utf8')
+  }
+
+  for (const fallbackPath of defaultPaths) {
+    const resolved = path.resolve(fallbackPath)
+    if (fs.existsSync(resolved)) {
+      return fs.readFileSync(resolved, 'utf8')
+    }
+  }
+
+  throw new Error(`JWT key not found. Set JWT_PRIVATE_KEY or JWT_PRIVATE_KEY_PATH, or add one of: ${defaultPaths.join(', ')}`)
+}
+
+function getPrivateKey(): string {
+  return loadKeyValue(process.env.JWT_PRIVATE_KEY, process.env.JWT_PRIVATE_KEY_PATH, [
+    './keys/jwt_private.pem',
+    './keys/private.pem',
+  ])
 }
 
 function getPublicKey(): string {
-  // First check for env variable (Render/production)
-  if (process.env.JWT_PUBLIC_KEY) {
-    return process.env.JWT_PUBLIC_KEY
-  }
-  // Fall back to file path (local development)
-  const keyPath = process.env.JWT_PUBLIC_KEY_PATH || './keys/public.pem'
-  return fs.readFileSync(path.resolve(keyPath), 'utf8')
+  return loadKeyValue(process.env.JWT_PUBLIC_KEY, process.env.JWT_PUBLIC_KEY_PATH, [
+    './keys/jwt_public.pem',
+    './keys/public.pem',
+  ])
 }
 
 export interface TokenPair {
