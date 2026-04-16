@@ -48,7 +48,7 @@ import helmet from 'helmet'
 import compression from 'compression'
 import { rateLimit } from 'express-rate-limit'
 import { RedisStore } from 'rate-limit-redis'
-import { getRedis, isRedisAvailable } from '@esign/utils/redis'
+import { getRedis, isRedisAvailable } from '@esign/utils'
 import { logger } from '@esign/utils/logger'
 
 const app = express() as any

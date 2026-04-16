@@ -4,7 +4,7 @@
 import { Request, Response, Router } from 'express'
 import { z } from 'zod'
 import { prisma } from '@esign/db'
-import { redis } from '@esign/utils/redis'
+import { getRedis } from '@esign/utils'
 
 const router = Router()
 
@@ -26,7 +26,7 @@ router.get('/check-email', async (req: Request, res: Response) => {
 
     // Try cache first (instant response)
     try {
-      const cached = await redis.get(`${EMAIL_CHECK_CACHE_PREFIX}${emailLower}`)
+      const cached = await getRedis().get(`${EMAIL_CHECK_CACHE_PREFIX}${emailLower}`)
       if (cached !== null) {
         const available = cached === 'true'
         return res.json({ available, cached: true })
@@ -45,7 +45,7 @@ router.get('/check-email', async (req: Request, res: Response) => {
 
     // Cache result
     try {
-      await redis.setex(
+      await getRedis().setex(
         `${EMAIL_CHECK_CACHE_PREFIX}${emailLower}`,
         EMAIL_CHECK_CACHE_TTL,
         available.toString()
@@ -146,7 +146,7 @@ router.get('/health', async (req: Request, res: Response) => {
     await prisma.user.count()
 
     // Check Redis connection
-    await redis.ping()
+    await getRedis().ping()
 
     res.json({
       status: 'ok',

@@ -3,7 +3,7 @@ import fs from 'fs'
 import path from 'path'
 import { v4 as uuidv4 } from 'uuid'
 import { prisma, User } from '@esign/db'
-import { redis } from '@esign/utils/redis'
+import { getRedis } from '@esign/utils'
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // KEY CACHING - Load keys once at startup, cache in memory
@@ -141,13 +141,13 @@ export async function storeSession(
   if (useRedis) {
     try {
       // Store in Redis for fast lookups (expires automatically)
-      await redis.setex(
+      await getRedis().setex(
         `${SESSION_REDIS_PREFIX}${tokens.accessToken}`,
         SESSION_TTL,
         JSON.stringify(sessionData)
       )
       // Also index by refresh token for rotation
-      await redis.setex(
+      await getRedis().setex(
         `${SESSION_REDIS_PREFIX}refresh:${tokens.refreshToken}`,
         SESSION_TTL,
         JSON.stringify(sessionData)
@@ -196,7 +196,7 @@ export async function rotateRefreshToken(refreshToken: string): Promise<TokenPai
     // Try Redis first (400x faster than DB)
     let sessionData: any = null
     try {
-      const cached = await redis.get(`${SESSION_REDIS_PREFIX}refresh:${refreshToken}`)
+      const cached = await getRedis().get(`${SESSION_REDIS_PREFIX}refresh:${refreshToken}`)
       if (cached) {
         sessionData = JSON.parse(cached)
       }
@@ -227,7 +227,7 @@ export async function rotateRefreshToken(refreshToken: string): Promise<TokenPai
     // Rotate: delete old, create new (single operation)
     try {
       await Promise.all([
-        redis.del(`${SESSION_REDIS_PREFIX}refresh:${refreshToken}`),
+        getRedis().del(`${SESSION_REDIS_PREFIX}refresh:${refreshToken}`),
         storeSession(sessionData.userId, newTokens, {
           ip: sessionData.ipAddress,
           headers: { 'user-agent': sessionData.userAgent },
@@ -263,7 +263,7 @@ export async function rotateRefreshToken(refreshToken: string): Promise<TokenPai
 export async function isSessionValid(token: string): Promise<boolean> {
   try {
     // Fast check in Redis first
-    const cached = await redis.get(`${SESSION_REDIS_PREFIX}${token}`)
+    const cached = await getRedis().get(`${SESSION_REDIS_PREFIX}${token}`)
     if (cached) return true
 
     // Fallback to database
@@ -273,7 +273,7 @@ export async function isSessionValid(token: string): Promise<boolean> {
 
     if (session && session.expiresAt > new Date()) {
       // Re-cache the result
-      await redis.setex(
+      await getRedis().setex(
         `${SESSION_REDIS_PREFIX}${token}`,
         SESSION_TTL,
         JSON.stringify(session)

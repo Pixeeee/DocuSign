@@ -2,7 +2,7 @@ import { Request, Response, NextFunction } from 'express'
 import jwt from 'jsonwebtoken'
 import fs from 'fs'
 import path from 'path'
-import { isTokenBlacklisted } from '@esign/utils/redis'
+import { isTokenBlacklisted } from '@esign/utils'
 import { prisma } from '@esign/db'
 
 export interface AuthenticatedRequest extends Request {

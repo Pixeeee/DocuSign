@@ -8,7 +8,7 @@ import { prisma } from '@esign/db'
 import { generateTokens, storeSession, rotateRefreshToken } from '../services/jwt.service'
 import { authenticate, AuthenticatedRequest } from '../middleware/authenticate'
 import { auditLog } from '../middleware/audit'
-import { blacklistToken } from '@esign/utils/redis'
+import { blacklistToken } from '@esign/utils'
 import { encryptToString, decryptFromString } from '@esign/crypto'
 
 const router = Router()

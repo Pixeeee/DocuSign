@@ -5,7 +5,7 @@ import { Request, Response, NextFunction } from 'express'
 const payments = require('@esign/payments') as any
 const { buildX402Header, verifyX402Payment, checkSubscriptionCoverage } = payments
 import { prisma } from '@esign/db'
-import { getIdempotency, setIdempotency } from '@esign/utils/redis'
+import { getIdempotency, setIdempotency } from '@esign/utils'
 import { AuthenticatedRequest } from './authenticate'
 import { logger } from '@esign/utils/logger'
 

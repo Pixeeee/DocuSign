@@ -7,10 +7,10 @@ import QRCode from 'qrcode'
 import { Request, Response, Router } from 'express'
 import { z } from 'zod'
 import { prisma } from '@esign/db'
-import { generateTokens, storeSession, rotateRefreshToken } from '../services/jwt.service'
+import { generateTokens, storeSession, rotateRefreshToken } from '../services/jwt.service.optimized'
 import { authenticate, AuthenticatedRequest } from '../middleware/authenticate'
 import { auditLog } from '../middleware/audit'
-import { blacklistToken, redis } from '@esign/utils/redis'
+import { blacklistToken, getRedis } from '@esign/utils'
 import { encryptToString, decryptFromString } from '@esign/crypto'
 
 const router = Router()
@@ -61,11 +61,11 @@ const loginSchema = z.object({
 async function checkLoginRateLimit(email: string): Promise<boolean> {
   try {
     const key = `${RATE_LIMIT_PREFIX}login:${email}`
-    const attempts = await redis.incr(key)
+    const attempts = await getRedis().incr(key)
 
     if (attempts === 1) {
       // First attempt, set expiration
-      await redis.expire(key, Math.ceil(LOGIN_WINDOW_MS / 1000))
+      await getRedis().expire(key, Math.ceil(LOGIN_WINDOW_MS / 1000))
     }
 
     return attempts <= LOGIN_ATTEMPT_LIMIT

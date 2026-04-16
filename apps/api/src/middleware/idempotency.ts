@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express'
-import { getIdempotency, setIdempotency } from '@esign/utils/redis'
+import { getIdempotency, setIdempotency } from '@esign/utils'
 import { v4 as uuidv4 } from 'uuid'
 
 /**

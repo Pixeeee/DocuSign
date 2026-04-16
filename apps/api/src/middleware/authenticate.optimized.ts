@@ -6,7 +6,7 @@ import fs from 'fs'
 import path from 'path'
 import { Request, Response, NextFunction } from 'express'
 import { prisma, User } from '@esign/db'
-import { redis } from '@esign/utils/redis'
+import { getRedis } from '@esign/utils'
 
 export interface AuthenticatedRequest extends Request {
   user?: User & { mfaVerified?: boolean }
@@ -72,7 +72,7 @@ interface CachedUser {
 async function getCachedUser(userId: string): Promise<CachedUser | null> {
   try {
     // Try Redis first (instant)
-    const cached = await redis.get(`${USER_CACHE_PREFIX}${userId}`)
+    const cached = await getRedis().get(`${USER_CACHE_PREFIX}${userId}`)
     if (cached) {
       return JSON.parse(cached)
     }
@@ -99,7 +99,7 @@ async function getCachedUser(userId: string): Promise<CachedUser | null> {
     if (user) {
       // Cache for future requests
       try {
-        await redis.setex(
+        await getRedis().setex(
           `${USER_CACHE_PREFIX}${userId}`,
           USER_CACHE_TTL,
           JSON.stringify(user)
