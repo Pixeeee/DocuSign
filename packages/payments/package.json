@@ -9,7 +9,7 @@
     ".": "./dist/index.js"
   },
   "scripts": {
-    "build": "..\\..\\node_modules\\.bin\\tsc.cmd --build"
+    "build": "tsc --build"
   },
   "dependencies": {
     "@esign/db": "workspace:*",

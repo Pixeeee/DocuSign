@@ -10,13 +10,13 @@
     ".": "./dist/index.js"
   },
   "scripts": {
-    "build": "..\\..\\node_modules\\.bin\\prisma.cmd generate && ..\\..\\node_modules\\.bin\\tsc.cmd --build",
-    "migrate": "..\\..\\node_modules\\.bin\\prisma.cmd migrate dev",
-    "generate": "..\\..\\node_modules\\.bin\\prisma.cmd generate",
-    "studio": "..\\..\\node_modules\\.bin\\prisma.cmd studio",
-    "push": "..\\..\\node_modules\\.bin\\prisma.cmd db push",
-    "seed": "..\\..\\node_modules\\.bin\\ts-node.cmd prisma/seed.ts",
-    "test:migration": "..\\..\\node_modules\\.bin\\ts-node.cmd src/testMigration.ts"
+    "build": "prisma generate && tsc --build",
+    "migrate": "prisma migrate dev",
+    "generate": "prisma generate",
+    "studio": "prisma studio",
+    "push": "prisma db push",
+    "seed": "ts-node prisma/seed.ts",
+    "test:migration": "ts-node src/testMigration.ts"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.6.0",

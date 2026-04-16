@@ -2,8 +2,8 @@
   "name": "@esign/api",
   "version": "1.0.0",
   "scripts": {
-    "dev": "..\\..\\node_modules\\.bin\\tsx.cmd watch src/index.ts",
-    "build": "..\\..\\node_modules\\.bin\\tsc.cmd -p tsconfig.json",
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc -p tsconfig.json",
     "start": "node dist/index.js"
   },
   "dependencies": {

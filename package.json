@@ -12,7 +12,7 @@
     "db:migrate": "pnpm --filter @esign/db migrate",
     "db:generate": "pnpm --filter @esign/db generate",
     "db:studio": "pnpm --filter @esign/db studio",
-    "postinstall": "pnpm --filter @esign/db prisma generate"
+    "postinstall": "pnpm --filter @esign/db run generate"
   },
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",
