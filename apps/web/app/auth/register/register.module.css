@@ -1,0 +1,472 @@
+/* ═══════════════════════════════════════════════════════════
+   Ink Covenant — Register Page
+   apps/web/app/auth/register/register.module.css
+   ═══════════════════════════════════════════════════════════ */
+
+/* ── Shared tokens (same as login) ───────────────────────── */
+:root {
+  --ink-black:     #080808;
+  --ink-deep:      #0C0C0C;
+  --ink-card-b1:   #161616;
+  --ink-card-b2:   #222222;
+  --ink-card-hero: #0E0E0E;
+  --ink-border:    #AEAEAE;
+  --ink-rule:      #404040;
+
+  --warm-white:    #F8F6F2;
+  --warm-grid:     #E6E3DF;
+
+  --text-primary:      #0A0A0A;
+  --text-secondary:    #5C5A57;
+  --text-muted:        #8A8785;
+  --text-placeholder:  #ADADAD;
+
+  --right-sign:    #E8E8E8;
+  --right-here:    #5E5E5E;
+
+  --radius-outer:  20px;
+  --radius-card:   24px;
+  --radius-input:  10px;
+  --font: 'Poppins', system-ui, -apple-system, sans-serif;
+}
+
+/* ── Page + outer card (identical to login) ──────────────── */
+.page {
+  display:         flex;
+  align-items:     center;
+  justify-content: center;
+  min-height:      100vh;
+  background-image: radial-gradient(ellipse at 70% 50%, #E4E0DA 0%, #D8D4CE 100%);
+  padding:         24px;
+  font-family:     var(--font);
+}
+
+.card2 {
+  display:       flex;
+  width:         100%;
+  max-width:     960px;
+  min-height:    620px;
+  border-radius: var(--radius-outer);
+  overflow:      hidden;
+  box-shadow:    0 24px 80px rgba(0,0,0,0.18), 0 4px 16px rgba(0,0,0,0.08);
+  background:    var(--warm-white);
+
+  /* Slide transition */
+  transition:    transform 0.38s cubic-bezier(0.4, 0, 0.2, 1),
+                 opacity   0.38s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.cardSlide {
+  opacity:   0.6;
+  transform: scale(0.985);
+}
+
+/* ── Left panel (shared with login) ──────────────────────── */
+.left {
+  position:        relative;
+  flex:            0 0 42%;
+  background:      var(--ink-deep);
+  overflow:        hidden;
+  display:         flex;
+  flex-direction:  column;
+  justify-content: center;
+  align-items:     center;
+}
+
+.leftGrid {
+  position:         absolute;
+  inset:            0;
+  background-image: repeating-linear-gradient(0deg, var(--warm-grid) 0, var(--warm-grid) 1px, transparent 1px, transparent 32px),
+                    repeating-linear-gradient(90deg, var(--warm-grid) 0, var(--warm-grid) 1px, transparent 1px, transparent 32px);
+  opacity:    0.06;
+  pointer-events: none;
+}
+
+.cardStack {
+  position:  relative;
+  width:     220px;
+  height:    290px;
+  flex-shrink: 0;
+}
+
+.card {
+  position:      absolute;
+  width:         210px;
+  height:        280px;
+  border-radius: var(--radius-card);
+}
+
+.cardB1 { background: var(--ink-card-b1); top: 20px; left: -40px; transform: rotate(-15deg); }
+.cardB2 { background: var(--ink-card-b2); top: 14px; left:  32px; transform: rotate(12deg); }
+
+.cardHero {
+  background: var(--ink-card-hero);
+  border:     1.5px solid var(--ink-border);
+  top: 0; left: 8px;
+  transform: rotate(3deg);
+  display: flex;
+  flex-direction: column;
+}
+
+.cardInner { padding: 20px 22px 16px; display: flex; flex-direction: column; height: 100%; }
+.signWord  { font-size: 44px; font-weight: 700; color: var(--right-sign); line-height: 1; letter-spacing: 1px; }
+.signRule  { width: 100%; height: 1px; background: var(--ink-rule); margin: 6px 0 4px; }
+.hereWord  { font-size: 14px; font-weight: 300; color: var(--right-here); letter-spacing: 0.5px; }
+
+.ruledLines { margin-top: 14px; display: flex; flex-direction: column; gap: 9px; }
+.ruleLine   { display: flex; align-items: center; gap: 5px; }
+.xMark      { font-size: 9px; font-weight: 300; color: #484848; width: 10px; flex-shrink: 0; }
+.ruleBar    { display: block; flex: 1; height: 1px; background: #2E2E2E; }
+.sigSvg     { width: 100%; height: auto; margin-top: 10px; }
+
+.leftBrand  { position: absolute; bottom: 28px; left: 22px; right: 22px; }
+.leftRule   { height: 1px; background: #282828; margin-bottom: 8px; }
+.leftLabel  { margin: 0; font-size: 10px; font-weight: 300; color: #484848; letter-spacing: 0.8px; font-family: var(--font); }
+
+.dotMatrix  { position: absolute; top: 24px; right: 18px; display: grid; grid-template-columns: repeat(5, 10px); gap: 6px; pointer-events: none; }
+.dot        { display: block; width: 4px; height: 4px; border-radius: 50%; background: #242424; }
+
+/* ═══════════════════════════════════════════════════════════
+   RIGHT PANEL
+   ═══════════════════════════════════════════════════════════ */
+.right {
+  flex:     1;
+  position: relative;
+  overflow: hidden;
+  background: var(--warm-white);
+}
+
+/* ── Form panels (absolutely positioned, one visible at a time) */
+.formPanel {
+  position:   absolute;
+  inset:      0;
+  display:    flex;
+  flex-direction: column;
+  padding:    44px 48px 36px;
+  overflow-y: auto;
+  transition: opacity   0.38s cubic-bezier(0.4, 0, 0.2, 1),
+              transform 0.38s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.panelVisible {
+  opacity:    1;
+  transform:  translateX(0);
+  pointer-events: all;
+}
+
+.panelHidden {
+  opacity:    0;
+  transform:  translateX(28px);
+  pointer-events: none;
+}
+
+/* ── Stepper ──────────────────────────────────────────────── */
+.stepper {
+  display:     flex;
+  align-items: center;
+  gap:         0;
+  margin-bottom: 28px;
+}
+
+.stepItem {
+  display:     flex;
+  align-items: center;
+  gap:         8px;
+}
+
+.stepDot {
+  width:           28px;
+  height:          28px;
+  border-radius:   50%;
+  border:          1.5px solid #D0CCC8;
+  background:      var(--warm-white);
+  display:         flex;
+  align-items:     center;
+  justify-content: center;
+  font-size:       11px;
+  font-weight:     500;
+  color:           var(--text-muted);
+  flex-shrink:     0;
+  transition:      border-color 0.2s, background 0.2s, color 0.2s;
+}
+
+.stepDotActive {
+  border-color: var(--ink-black);
+  background:   var(--ink-black);
+  color:        var(--warm-white);
+}
+
+.stepLabel {
+  font-size:   12px;
+  font-weight: 400;
+  color:       var(--text-muted);
+  transition:  color 0.2s;
+  white-space: nowrap;
+}
+
+.stepLabelActive {
+  color:       var(--text-primary);
+  font-weight: 600;
+}
+
+.stepLine {
+  flex:       1;
+  height:     1px;
+  background: #E0DDD8;
+  margin:     0 10px;
+  min-width:  24px;
+  transition: background 0.2s;
+}
+
+.stepLineActive { background: var(--ink-black); }
+
+/* ── Common form elements (same as login) ─────────────────── */
+.backBtn {
+  background:    none;
+  border:        none;
+  padding:       0;
+  margin-bottom: 20px;
+  font-family:   var(--font);
+  font-size:     13px;
+  font-weight:   400;
+  color:         var(--text-muted);
+  cursor:        pointer;
+  text-align:    left;
+  transition:    color 0.15s;
+  width:         fit-content;
+}
+
+.backBtn:hover {
+  color: var(--text-primary);
+}
+
+.formHead     { margin-bottom: 28px; }
+.formTitle    { margin: 0 0 4px; font-size: 32px; font-weight: 700; color: var(--text-primary); letter-spacing: -0.5px; line-height: 1.15; }
+.formSub      { margin: 0; font-size: 14px; font-weight: 300; color: var(--text-muted); }
+
+.alertBox {
+  margin-bottom:  18px;
+  padding:        10px 14px;
+  border-radius:  8px;
+  border:         1px solid #E8C5C5;
+  background:     #FDF3F3;
+  font-size:      13px;
+  color:          #7A2020;
+}
+
+.form    { display: flex; flex-direction: column; gap: 18px; }
+.fieldRow { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.field   { display: flex; flex-direction: column; gap: 6px; }
+.label   { font-size: 13px; font-weight: 500; color: var(--text-secondary); letter-spacing: 0.1px; }
+.optional { font-size: 11px; font-weight: 300; color: var(--text-muted); }
+
+.fieldHint {
+  margin:      4px 0 0;
+  font-size:   12px;
+  font-weight: 300;
+  color:       var(--text-muted);
+}
+
+.inputWrap { position: relative; }
+
+.input {
+  width:         100%;
+  height:        46px;
+  padding:       0 14px;
+  border:        1.5px solid #E0DDD8;
+  border-radius: var(--radius-input);
+  background:    #FDFCFA;
+  font-family:   var(--font);
+  font-size:     14px;
+  font-weight:   400;
+  color:         var(--text-primary);
+  outline:       none;
+  transition:    border-color 0.15s, box-shadow 0.15s;
+  box-sizing:    border-box;
+}
+
+.input::placeholder { color: var(--text-placeholder); }
+.input:focus { border-color: var(--ink-black); box-shadow: 0 0 0 3px rgba(8,8,8,0.07); background: #fff; }
+
+.inputWrap .input { padding-right: 44px; }
+
+.select {
+  appearance:   none;
+  cursor:       pointer;
+  padding-right: 36px;
+  background-image: url("data:image/svg+xml,%3Csvg width='12' height='8' viewBox='0 0 12 8' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1L6 6L11 1' stroke='%238A8785' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+}
+
+.eyeBtn {
+  position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
+  background: none; border: none; padding: 4px; cursor: pointer;
+  color: var(--text-muted); display: flex; align-items: center; transition: color 0.15s;
+}
+.eyeBtn:hover { color: var(--text-primary); }
+
+/* ── Password strength ────────────────────────────────────── */
+.strengthBar {
+  display:     flex;
+  align-items: center;
+  gap:         10px;
+  margin-top:  -6px;
+}
+
+.strengthTrack {
+  flex:          1;
+  height:        3px;
+  background:    #E0DDD8;
+  border-radius: 2px;
+  overflow:      hidden;
+}
+
+.strengthFill {
+  height:        100%;
+  border-radius: 2px;
+  transition:    width 0.3s ease, background 0.3s ease;
+}
+
+.strengthLabel {
+  font-size:  11px;
+  font-weight: 400;
+  color:       var(--text-muted);
+  min-width:   36px;
+  text-align:  right;
+}
+
+/* ── Primary button ───────────────────────────────────────── */
+.primaryBtn {
+  display:         flex;
+  align-items:     center;
+  justify-content: center;
+  gap:             10px;
+  height:          50px;
+  width:           100%;
+  border:          none;
+  border-radius:   var(--radius-btn);
+  background:      var(--ink-black);
+  color:           var(--warm-white);
+  font-family:     var(--font);
+  font-size:       15px;
+  font-weight:     500;
+  cursor:          pointer;
+  transition:      background 0.18s, transform 0.12s;
+  margin-top:      4px;
+}
+
+.primaryBtn:hover:not(:disabled) {
+  background: #1A1A1A;
+}
+
+.primaryBtn:active:not(:disabled) {
+  transform: scale(0.985);
+}
+
+.primaryBtn:disabled {
+  opacity: 0.55;
+  cursor:  not-allowed;
+}
+
+/* ── Secondary button ─────────────────────────────────────── */
+.secondaryBtn {
+  display:         flex;
+  align-items:     center;
+  justify-content: center;
+  gap:             10px;
+  height:          50px;
+  flex:            1;
+  border:          1.5px solid #E0DDD8;
+  border-radius:   var(--radius-btn);
+  background:      #FDFCFA;
+  color:           var(--text-primary);
+  font-family:     var(--font);
+  font-size:       15px;
+  font-weight:     500;
+  cursor:          pointer;
+  transition:      border-color 0.15s, background 0.15s;
+}
+
+.secondaryBtn:hover {
+  border-color: #C0BDB8;
+  background:   #F5F3EF;
+}
+
+.secondaryBtn:active {
+  transform: scale(0.985);
+}
+
+.spinner {
+  display:       inline-block;
+  width:         16px; height: 16px;
+  border:        2px solid rgba(255,255,255,0.3);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation:     spin 0.7s linear infinite;
+  flex-shrink:   0;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── Review card (confirm step) ───────────────────────────── */
+.reviewCard {
+  border:        1.5px solid #E0DDD8;
+  border-radius: 12px;
+  overflow:      hidden;
+  background:    #FDFCFA;
+  padding:       16px;
+}
+
+.reviewSection {
+  margin-bottom: 12px;
+}
+
+.reviewSection:last-child {
+  margin-bottom: 0;
+}
+
+/* ── Terms checkbox ───────────────────────────────────────── */
+.checkLabel {
+  display:     flex;
+  align-items: flex-start;
+  gap:         10px;
+  font-size:   13px;
+  font-weight: 300;
+  color:       var(--text-muted);
+  cursor:      pointer;
+  line-height: 1.5;
+}
+
+.checkbox {
+  width:         16px;
+  height:        16px;
+  margin-top:    2px;
+  accent-color:  var(--ink-black);
+  flex-shrink:   0;
+  cursor:        pointer;
+}
+
+.termsNote {
+  margin:      16px 0 0;
+  font-size:   12px;
+  font-weight: 300;
+  color:       var(--text-muted);
+}
+
+.termsLink {
+  color:           var(--text-primary);
+  font-weight:     500;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+/* ── Responsive ───────────────────────────────────────────── */
+@media (max-width: 768px) {
+  .page   { padding: 0; }
+  .card2  { flex-direction: column; border-radius: 0; min-height: 100vh; box-shadow: none; }
+  .left   { flex: 0 0 200px; min-height: 200px; }
+  .right  { padding: 28px 24px; }
+  .fieldRow { grid-template-columns: 1fr; }
+  .formTitle { font-size: 24px; }
+  .dotMatrix { display: none; }
+}

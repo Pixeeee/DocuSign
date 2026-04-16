@@ -22,7 +22,7 @@
     }
   },
   "scripts": {
-    "build": "tsc --build"
+    "build": "..\\..\\node_modules\\.bin\\tsc.cmd --build"
   },
   "dependencies": {
     "@types/ioredis": "^5.0.0",

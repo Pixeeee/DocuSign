@@ -231,3 +231,54 @@
 {"level":"info","message":"Environment: development","service":"esign-api","timestamp":"2026-04-02 23:27:42"}
 {"level":"info","message":"ESIGN API running on port 4000","service":"esign-api","timestamp":"2026-04-02 23:27:49"}
 {"level":"info","message":"Environment: development","service":"esign-api","timestamp":"2026-04-02 23:27:49"}
+{"level":"info","message":"ESIGN API running on port 4000","service":"esign-api","timestamp":"2026-04-14 03:55:00"}
+{"level":"info","message":"Environment: development","service":"esign-api","timestamp":"2026-04-14 03:55:00"}
+{"level":"info","message":"ESIGN API running on port 4000","service":"esign-api","timestamp":"2026-04-15 04:00:38"}
+{"level":"info","message":"Environment: development","service":"esign-api","timestamp":"2026-04-15 04:00:38"}
+{"documentId":"cmnz2d9440007n4v3hatu0zq9","level":"info","message":"Document uploaded","service":"esign-api","size":112958,"timestamp":"2026-04-15 04:18:17","userId":"cmnxm49lv000080v3drk228j5"}
+{"level":"info","message":"ESIGN API running on port 4000","service":"esign-api","timestamp":"2026-04-15 04:18:23"}
+{"level":"info","message":"Environment: development","service":"esign-api","timestamp":"2026-04-15 04:18:23"}
+{"level":"info","message":"ESIGN API running on port 4000","service":"esign-api","timestamp":"2026-04-15 04:18:30"}
+{"level":"info","message":"Environment: development","service":"esign-api","timestamp":"2026-04-15 04:18:30"}
+{"level":"info","message":"ESIGN API running on port 4000","service":"esign-api","timestamp":"2026-04-15 04:18:39"}
+{"level":"info","message":"Environment: development","service":"esign-api","timestamp":"2026-04-15 04:18:39"}
+{"level":"info","message":"ESIGN API running on port 4000","service":"esign-api","timestamp":"2026-04-15 04:18:41"}
+{"level":"info","message":"Environment: development","service":"esign-api","timestamp":"2026-04-15 04:18:41"}
+{"level":"info","message":"ESIGN API running on port 4000","service":"esign-api","timestamp":"2026-04-15 04:18:53"}
+{"level":"info","message":"Environment: development","service":"esign-api","timestamp":"2026-04-15 04:18:53"}
+{"level":"info","message":"ESIGN API running on port 4000","service":"esign-api","timestamp":"2026-04-15 04:19:04"}
+{"level":"info","message":"Environment: development","service":"esign-api","timestamp":"2026-04-15 04:19:04"}
+{"level":"info","message":"ESIGN API running on port 4000","service":"esign-api","timestamp":"2026-04-15 04:19:44"}
+{"level":"info","message":"Environment: development","service":"esign-api","timestamp":"2026-04-15 04:19:44"}
+{"level":"info","message":"ESIGN API running on port 4000","service":"esign-api","timestamp":"2026-04-15 04:19:54"}
+{"level":"info","message":"Environment: development","service":"esign-api","timestamp":"2026-04-15 04:19:54"}
+{"level":"info","message":"ESIGN API running on port 4000","service":"esign-api","timestamp":"2026-04-15 04:20:02"}
+{"level":"info","message":"Environment: development","service":"esign-api","timestamp":"2026-04-15 04:20:02"}
+{"level":"info","message":"ESIGN API running on port 4000","service":"esign-api","timestamp":"2026-04-15 04:20:06"}
+{"level":"info","message":"Environment: development","service":"esign-api","timestamp":"2026-04-15 04:20:06"}
+{"level":"info","message":"ESIGN API running on port 4000","service":"esign-api","timestamp":"2026-04-15 04:20:19"}
+{"level":"info","message":"Environment: development","service":"esign-api","timestamp":"2026-04-15 04:20:19"}
+{"level":"info","message":"ESIGN API running on port 4000","service":"esign-api","timestamp":"2026-04-15 04:20:23"}
+{"level":"info","message":"Environment: development","service":"esign-api","timestamp":"2026-04-15 04:20:23"}
+{"level":"info","message":"ESIGN API running on port 4000","service":"esign-api","timestamp":"2026-04-15 04:20:29"}
+{"level":"info","message":"Environment: development","service":"esign-api","timestamp":"2026-04-15 04:20:29"}
+{"level":"info","message":"ESIGN API running on port 4000","service":"esign-api","timestamp":"2026-04-15 04:20:53"}
+{"level":"info","message":"Environment: development","service":"esign-api","timestamp":"2026-04-15 04:20:53"}
+{"documentId":"cmnz2d9440007n4v3hatu0zq9","level":"info","message":"Payment required for signing","price":"0.000091","service":"esign-api","timestamp":"2026-04-15 04:24:53","userId":"cmnxm49lv000080v3drk228j5"}
+{"documentId":"cmnz2d9440007n4v3hatu0zq9","level":"info","message":"Payment required for signing","price":"0.000091","service":"esign-api","timestamp":"2026-04-15 04:33:42","userId":"cmnxm49lv000080v3drk228j5"}
+{"documentId":"cmnz2d9440007n4v3hatu0zq9","level":"info","message":"Payment required for signing","price":"0.000091","service":"esign-api","timestamp":"2026-04-15 05:46:50","userId":"cmnxm49lv000080v3drk228j5"}
+{"documentId":"cmnz2d9440007n4v3hatu0zq9","level":"info","message":"Payment required for signing","price":"0.000091","service":"esign-api","timestamp":"2026-04-15 05:49:56","userId":"cmnxm49lv000080v3drk228j5"}
+{"documentId":"cmnz2d9440007n4v3hatu0zq9","level":"info","message":"Payment required for signing","price":"0.000091","service":"esign-api","timestamp":"2026-04-15 05:53:27","userId":"cmnxm49lv000080v3drk228j5"}
+{"documentId":"cmnz2d9440007n4v3hatu0zq9","level":"info","message":"Payment required for signing","price":"0.000091","service":"esign-api","timestamp":"2026-04-15 05:54:02","userId":"cmnxm49lv000080v3drk228j5"}
+{"documentId":"cmnz2d9440007n4v3hatu0zq9","level":"info","message":"Payment required for signing","price":"0.000091","service":"esign-api","timestamp":"2026-04-15 05:54:51","userId":"cmnxm49lv000080v3drk228j5"}
+{"level":"info","message":"ESIGN API running on port 4000","service":"esign-api","timestamp":"2026-04-16 04:09:41"}
+{"level":"info","message":"Environment: development","service":"esign-api","timestamp":"2026-04-16 04:09:41"}
+{"documentId":"cmnz2d9440007n4v3hatu0zq9","level":"info","message":"Payment required for signing","price":"0.000091","service":"esign-api","timestamp":"2026-04-16 04:16:29","userId":"cmnxm49lv000080v3drk228j5"}
+{"level":"info","message":"ESIGN API running on port 4000","service":"esign-api","timestamp":"2026-04-17 04:00:03"}
+{"level":"info","message":"Environment: development","service":"esign-api","timestamp":"2026-04-17 04:00:03"}
+{"documentId":"cmnz2d9440007n4v3hatu0zq9","level":"info","message":"Payment required for signing","price":"0.000091","service":"esign-api","timestamp":"2026-04-17 04:43:17","userId":"cmnxm49lv000080v3drk228j5"}
+{"documentId":"cmnz2d9440007n4v3hatu0zq9","level":"info","message":"Payment required for signing","price":"0.000091","service":"esign-api","timestamp":"2026-04-17 04:49:46","userId":"cmnxm49lv000080v3drk228j5"}
+{"documentId":"cmnz2d9440007n4v3hatu0zq9","level":"info","message":"Payment required for signing","price":"0.000091","service":"esign-api","timestamp":"2026-04-17 04:55:21","userId":"cmnxm49lv000080v3drk228j5"}
+{"documentId":"cmnz2d9440007n4v3hatu0zq9","level":"info","message":"Payment required for signing","price":"0.000091","service":"esign-api","timestamp":"2026-04-17 04:55:42","userId":"cmnxm49lv000080v3drk228j5"}
+{"level":"info","message":"Development mode: accepting payment token without verification","service":"esign-api","timestamp":"2026-04-17 04:57:31"}
+{"documentId":"cmnz2d9440007n4v3hatu0zq9","level":"info","message":"Document signed","service":"esign-api","signatureId":"da5f0c32-127d-4f99-8d69-47f881e977cd","timestamp":"2026-04-17 04:57:31","userId":"cmnxm49lv000080v3drk228j5"}

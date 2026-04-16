@@ -1,0 +1,72 @@
+/* ═══════════════════════════════════════════════════════════
+   Ink Covenant — Error Page
+   apps/web/app/auth/error/error.module.css
+   ═══════════════════════════════════════════════════════════ */
+
+.page {
+  display: flex; align-items: center; justify-content: center;
+  min-height: 100vh;
+  background-image: radial-gradient(ellipse at 70% 50%, #E4E0DA 0%, #D8D4CE 100%);
+  padding: 24px;
+  font-family: 'Poppins', system-ui, -apple-system, sans-serif;
+}
+
+.card {
+  display: flex; width: 100%; max-width: 680px; min-height: 360px;
+  border-radius: 20px; overflow: hidden;
+  box-shadow: 0 24px 80px rgba(0,0,0,0.18);
+  background: #F8F6F2;
+}
+
+.left {
+  position: relative; flex: 0 0 220px;
+  background: #0C0C0C; display: flex;
+  flex-direction: column; align-items: center; justify-content: center; gap: 12px;
+}
+
+.leftGrid {
+  position: absolute; inset: 0;
+  background-image: repeating-linear-gradient(0deg,#E6E3DF 0,#E6E3DF 1px,transparent 1px,transparent 32px),
+                    repeating-linear-gradient(90deg,#E6E3DF 0,#E6E3DF 1px,transparent 1px,transparent 32px);
+  opacity: 0.06; pointer-events: none;
+}
+
+.icon      { width: 52px; height: 52px; }
+.errorCode { margin: 0; font-size: 11px; font-weight: 300; color: #484848; letter-spacing: 1.5px; text-transform: uppercase; }
+
+.right {
+  flex: 1; padding: 44px 44px 36px;
+  display: flex; flex-direction: column; justify-content: center;
+}
+
+.title  { margin: 0 0 10px; font-size: 26px; font-weight: 700; color: #080808; letter-spacing: -0.3px; }
+.body   { margin: 0 0 32px; font-size: 14px; font-weight: 300; color: #5C5A57; line-height: 1.6; }
+
+.actions { display: flex; gap: 12px; flex-wrap: wrap; }
+
+.primaryBtn {
+  display: inline-flex; align-items: center; justify-content: center;
+  height: 46px; padding: 0 24px; border-radius: 10px;
+  background: #080808; color: #F8F6F2;
+  font-family: 'Poppins', system-ui, -apple-system, sans-serif; font-size: 14px; font-weight: 500;
+  text-decoration: none; transition: background 0.18s;
+}
+.primaryBtn:hover { background: #1A1A1A; }
+
+.ghostBtn {
+  display: inline-flex; align-items: center; justify-content: center;
+  height: 46px; padding: 0 24px; border-radius: 10px;
+  border: 1.5px solid #E0DDD8; background: transparent; color: #5C5A57;
+  font-family: 'Poppins', system-ui, -apple-system, sans-serif; font-size: 14px; font-weight: 400;
+  text-decoration: none; transition: border-color 0.15s;
+}
+.ghostBtn:hover { border-color: #080808; color: #080808; }
+
+.support     { margin: 24px 0 0; font-size: 13px; font-weight: 300; color: #8A8785; }
+.supportLink { color: #080808; font-weight: 500; text-decoration: underline; text-underline-offset: 2px; }
+
+@media (max-width: 600px) {
+  .card  { flex-direction: column; }
+  .left  { flex: 0 0 120px; }
+  .right { padding: 28px 24px; }
+}

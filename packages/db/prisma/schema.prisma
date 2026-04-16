@@ -51,6 +51,8 @@ model User {
   sessions          Session[]
   auditLogs         AuditLog[]
   apiKeys           ApiKey[]
+  signatureRequestsCreated SignatureRequest[] @relation("signatureRequestsCreated")
+  signatureRequestsReceived SignatureRequest[] @relation("signatureRequestsReceived")
 
   @@index([email])
   @@map("users")
@@ -70,6 +72,7 @@ model Team {
   documents   Document[]
   payments    Payment[]
   subscriptions Subscription[]
+  signatureRequests SignatureRequest[]
 
   @@map("teams")
 }
@@ -133,6 +136,7 @@ model Document {
   payments        Payment[]
   auditLogs       AuditLog[]
   signingFields   SigningField[]
+  signatureRequests SignatureRequest[]
 
   @@index([uploadedById, status])
   @@index([teamId])
@@ -180,6 +184,40 @@ model Signature {
 
   @@index([documentId, status])
   @@map("signatures")
+}
+
+enum SignatureRequestStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+  EXPIRED
+  COMPLETED
+}
+
+model SignatureRequest {
+  id              String                   @id @default(cuid())
+  documentId      String
+  requestedById   String
+  requestedToId   String
+  teamId          String?
+  status          SignatureRequestStatus  @default(PENDING)
+  message         String?                 // Message from requester
+  dueDate         DateTime?               // Optional deadline
+  declinedReason  String?                 // Reason if declined
+  expiresAt       DateTime?               // Expiration time
+  metadata        Json?                   // Additional metadata
+  createdAt       DateTime                @default(now())
+  updatedAt       DateTime                @updatedAt
+
+  document        Document                @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  requestedBy     User                    @relation("signatureRequestsCreated", fields: [requestedById], references: [id])
+  requestedTo     User                    @relation("signatureRequestsReceived", fields: [requestedToId], references: [id])
+  team            Team?                   @relation(fields: [teamId], references: [id], onDelete: SetNull)
+
+  @@index([documentId, status])
+  @@index([requestedToId, status])
+  @@index([requestedById])
+  @@map("signature_requests")
 }
 
 // ─────────────────────────────────────────

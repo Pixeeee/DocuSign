@@ -3,10 +3,10 @@
 import { useState, useCallback, useEffect } from 'react'
 import { useSession } from 'next-auth/react'
 import { useDropzone } from 'react-dropzone'
-import { Card, Button, Alert, Spinner, Form, ProgressBar } from 'react-bootstrap'
 import type { Role, PlanType } from '@esign/db'
 import axios from 'axios'
 import type { AxiosError } from 'axios'
+import styles from './DocumentUpload.module.css'
 
 interface ExtendedUser {
   id: string
@@ -97,56 +97,84 @@ export default function DocumentUpload({ onSuccess }: Props) {
   }
 
   return (
-    <Card>
-      <Card.Body>
-        <h5>Upload Document</h5>
+    <div className={styles.container}>
+      <h5 className={styles.title}>Upload Document</h5>
 
-        {error && <Alert variant="danger">{error}</Alert>}
+      {error && (
+        <div className={styles.alert + ' ' + styles.alertDanger}>
+          <span className={styles.alertIcon}>⚠️</span>
+          <span>{error}</span>
+        </div>
+      )}
 
-        <div
-          {...getRootProps()}
-          className={`border-2 border-dashed rounded p-5 text-center mb-3 ${
-            isDragActive ? 'border-primary bg-light' : 'border-secondary'
-          }`}
-          style={{ cursor: 'pointer' }}
-        >
-          <input {...getInputProps()} />
-          {file ? (
-            <div>
-              <div className="text-success mb-2">📄 {file.name}</div>
-              <small className="text-muted">{(file.size / 1024 / 1024).toFixed(2)} MB</small>
+      <div
+        {...getRootProps()}
+        className={`${styles.dropzone} ${isDragActive ? styles.active : ''}`}
+      >
+        <input {...getInputProps()} />
+        {file ? (
+          <div className={styles.fileInfo}>
+            <span className={styles.fileIcon}>📄</span>
+            <div className={styles.fileName}>{file.name}</div>
+            <div className={styles.fileSize}>
+              {(file.size / 1024 / 1024).toFixed(2)} MB
             </div>
-          ) : isDragActive ? (
-            <p className="mb-0">Drop the PDF here...</p>
-          ) : (
-            <p className="mb-0">Drag & drop a PDF, or click to select</p>
-          )}
-        </div>
-
-        {file && (
-          <Form.Group className="mb-3">
-            <Form.Label>Document Title</Form.Label>
-            <Form.Control
-              type="text"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="Enter document title"
-            />
-          </Form.Group>
+          </div>
+        ) : isDragActive ? (
+          <div className={styles.dropzoneContent}>
+            <span className={styles.fileIcon}>📁</span>
+            <p className={styles.dropzoneText}>Drop the PDF here...</p>
+          </div>
+        ) : (
+          <div className={styles.dropzoneContent}>
+            <span className={styles.fileIcon}>📤</span>
+            <p className={styles.dropzoneText}>Drag & drop a PDF, or click to select</p>
+            <p className={styles.dropzoneSubtext}>Max 50 MB • PDF files only</p>
+          </div>
         )}
+      </div>
 
-        {uploading && <ProgressBar now={progress} label={`${progress}%`} className="mb-3" />}
-
-        <div className="d-flex gap-2">
-          <Button
-            variant="primary"
-            disabled={!file || !title || uploading}
-            onClick={handleUpload}
-          >
-            {uploading ? <><Spinner size="sm" /> Uploading...</> : 'Upload & Hash Document'}
-          </Button>
+      {file && (
+        <div className={styles.formGroup}>
+          <label className={styles.label}>Document Title</label>
+          <input
+            type="text"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            placeholder="Enter document title"
+            className={styles.input}
+          />
         </div>
-      </Card.Body>
-    </Card>
+      )}
+
+      {uploading && (
+        <div className={styles.progressContainer}>
+          <div className={styles.progressBarBg}>
+            <div
+              className={styles.progressBarFill}
+              style={{ width: `${progress}%` }}
+            />
+          </div>
+          <p className={styles.progressText}>{progress}%</p>
+        </div>
+      )}
+
+      <div className={styles.buttonGroup}>
+        <button
+          className={styles.button + ' ' + styles.buttonPrimary}
+          disabled={!file || !title || uploading}
+          onClick={handleUpload}
+        >
+          {uploading ? (
+            <>
+              <span className={styles.spinner} />
+              Uploading...
+            </>
+          ) : (
+            'Upload & Hash Document'
+          )}
+        </button>
+      </div>
+    </div>
   )
 }

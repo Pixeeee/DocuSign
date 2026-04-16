@@ -4,11 +4,11 @@
   "type": "module",
   "private": true,
   "scripts": {
-    "dev": "next dev --port 3001",
-    "build": "next build",
-    "start": "next start",
+    "dev": "..\\..\\node_modules\\.bin\\next.cmd dev --port 3001",
+    "build": "..\\..\\node_modules\\.bin\\next.cmd build",
+    "start": "..\\..\\node_modules\\.bin\\next.cmd start",
     "lint": "eslint --max-warnings 0",
-    "check-types": "next typegen && tsc --noEmit"
+    "check-types": "..\\..\\node_modules\\.bin\\next.cmd typegen && ..\\..\\node_modules\\.bin\\tsc.cmd --noEmit"
   },
   "dependencies": {
     "@repo/ui": "workspace:*",

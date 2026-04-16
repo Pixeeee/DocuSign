@@ -4,9 +4,9 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "next dev -p 3000",
-    "build": "next build",
-    "start": "next start -p 3000",
+    "dev": "..\\..\\node_modules\\.bin\\next.cmd dev -p 3000",
+    "build": "..\\..\\node_modules\\.bin\\next.cmd build",
+    "start": "..\\..\\node_modules\\.bin\\next.cmd start -p 3000",
     "lint": "eslint . --max-warnings 0"
   },
   "dependencies": {

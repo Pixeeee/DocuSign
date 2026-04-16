@@ -62,6 +62,7 @@ let paymentRoutes: any
 let teamRoutes: any
 let userRoutes: any
 let webhookRoutes: any
+let requestRoutes: any
 
 // ─── Security Middleware ───────────────────────────────────────
 
@@ -150,6 +151,7 @@ async function startServer() {
     teamRoutes = (await import('./routes/teams')).default
     userRoutes = (await import('./routes/users')).default
     webhookRoutes = (await import('./routes/webhooks')).default
+    requestRoutes = (await import('./routes/requests')).default
 
     console.log('✓ All routes imported successfully')
 
@@ -162,6 +164,7 @@ async function startServer() {
     app.use('/api/payments', paymentRoutes)
     app.use('/api/teams', teamRoutes)
     app.use('/api/webhooks', webhookRoutes)
+    app.use('/api/requests', requestRoutes)
 
     app.get('/api/health', (_req: Request, res: Response) => {
       res.json({

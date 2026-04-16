@@ -4,20 +4,10 @@ import { useState, useEffect } from 'react'
 import { useSession } from 'next-auth/react'
 import type { AxiosError } from 'axios'
 import type { Role, PlanType } from '@esign/db'
-import {
-  Table,
-  Badge,
-  Button,
-  ButtonGroup,
-  Spinner,
-  Alert,
-  Modal,
-  OverlayTrigger,
-  Tooltip,
-} from 'react-bootstrap'
 import { formatDistanceToNow, format } from 'date-fns'
 import axios from 'axios'
 import SignatureModal from './SignatureModal'
+import styles from './DocumentList.module.css'
 
 interface ExtendedUser {
   id: string
@@ -54,12 +44,12 @@ interface Props {
 }
 
 const STATUS_VARIANTS: Record<Document['status'], string> = {
-  DRAFT: 'secondary',
-  PENDING_SIGNATURE: 'warning',
-  PARTIALLY_SIGNED: 'info',
-  SIGNED: 'success',
-  EXPIRED: 'danger',
-  CANCELLED: 'dark',
+  DRAFT: styles.badgeDraft,
+  PENDING_SIGNATURE: styles.badgePending,
+  PARTIALLY_SIGNED: styles.badgeSigned,
+  SIGNED: styles.badgeSigned,
+  EXPIRED: styles.badgeExpired,
+  CANCELLED: styles.badgeCancelled,
 }
 
 const STATUS_LABELS: Record<Document['status'], string> = {
@@ -137,9 +127,10 @@ export default function DocumentList({ documents, onRefresh }: Props) {
 
   if (documents.length === 0) {
     return (
-      <div className="text-center py-5 text-muted">
-        <div style={{ fontSize: '3rem' }}>📄</div>
-        <p className="mt-2">No documents yet. Upload your first PDF to get started.</p>
+      <div className={styles.emptyState}>
+        <div className={styles.emptyIcon}>📄</div>
+        <h5 className={styles.emptyTitle}>No documents yet</h5>
+        <p className={styles.emptyText}>Upload your first PDF to get started.</p>
       </div>
     )
   }
@@ -147,118 +138,137 @@ export default function DocumentList({ documents, onRefresh }: Props) {
   return (
     <>
       {error && (
-        <Alert variant="danger" dismissible onClose={() => setError('')}>
-          {error}
-        </Alert>
+        <div className={`${styles.alert} ${styles.alertError}`} style={{ marginBottom: '16px' }}>
+          <span className={styles.alertIcon}>⚠️</span>
+          <div style={{ flex: 1 }}>
+            {error}
+            <button
+              onClick={() => setError('')}
+              style={{
+                marginLeft: '12px',
+                background: 'none',
+                border: 'none',
+                color: 'inherit',
+                cursor: 'pointer',
+                fontWeight: 'bold',
+              }}
+            >
+              ✕
+            </button>
+          </div>
+        </div>
       )}
 
-      <div className="table-responsive">
-        <Table hover className="mb-0 align-middle">
-          <thead className="table-light">
-            <tr>
-              <th>Document</th>
-              <th>Status</th>
-              <th>Signatures</th>
-              <th>Size</th>
-              <th>Uploaded</th>
-              <th className="text-end">Actions</th>
+      <div className={styles.tableWrapper}>
+        <table className={styles.table}>
+          <thead className={styles.thead}>
+            <tr className={styles.tr}>
+              <th className={styles.th}>Document</th>
+              <th className={styles.th}>Status</th>
+              <th className={styles.th}>Signatures</th>
+              <th className={styles.th}>Size</th>
+              <th className={styles.th}>Uploaded</th>
+              <th className={styles.th} style={{ textAlign: 'right' }}>Actions</th>
             </tr>
           </thead>
-          <tbody>
+          <tbody className={styles.tbody}>
             {documents.map((doc) => (
-              <tr key={doc.id}>
-                <td>
-                  <div className="fw-semibold text-truncate" style={{ maxWidth: 240 }}>
+              <tr key={doc.id} className={styles.tr}>
+                <td className={styles.td}>
+                  <div style={{ fontWeight: 500, textOverflow: 'ellipsis', overflow: 'hidden', maxWidth: '240px' }}>
                     {doc.title}
                   </div>
-                  <small className="text-muted text-truncate d-block" style={{ maxWidth: 240 }}>
+                  <small style={{ color: 'var(--text-muted)', display: 'block', textOverflow: 'ellipsis', overflow: 'hidden', maxWidth: '240px' }}>
                     {doc.fileName}
                   </small>
                 </td>
 
-                <td>
-                  <Badge bg={STATUS_VARIANTS[doc.status]} className="px-2 py-1">
+                <td className={styles.td}>
+                  <span className={`${styles.badge} ${STATUS_VARIANTS[doc.status]}`}>
                     {STATUS_LABELS[doc.status]}
-                  </Badge>
+                  </span>
                 </td>
 
-                <td>
+                <td className={styles.td}>
                   {doc._count.signatures === 0 ? (
-                    <span className="text-muted">—</span>
+                    <span className={styles.signatureCount} style={{ color: 'var(--text-muted)' }}>—</span>
                   ) : (
-                    <span>
-                      {doc.signatures.filter((s) => s.status === 'SIGNED').length}
-                      {' / '}
-                      {doc._count.signatures} signed
-                    </span>
+                    <div className={styles.signatureProgress}>
+                      <span className={styles.signatureCount}>
+                        {doc.signatures.filter((s) => s.status === 'SIGNED').length}
+                        {' / '}
+                        {doc._count.signatures}
+                      </span>
+                      <div className={styles.signatureBar}>
+                        <div
+                          className={styles.signatureFill}
+                          style={{
+                            width: `${(doc.signatures.filter((s) => s.status === 'SIGNED').length / doc._count.signatures) * 100}%`,
+                          }}
+                        />
+                      </div>
+                    </div>
                   )}
                 </td>
 
-                <td>
-                  <small className="text-muted">{formatBytes(doc.fileSize)}</small>
+                <td className={styles.td}>
+                  <span className={styles.fileSize}>{formatBytes(doc.fileSize)}</span>
                 </td>
 
-                <td>
-                  <OverlayTrigger
-                    placement="top"
-                    overlay={<Tooltip>{format(new Date(doc.createdAt), 'PPpp')}</Tooltip>}
+                <td className={styles.td}>
+                  <span
+                    className={styles.timestamp}
+                    title={format(new Date(doc.createdAt), 'PPpp')}
                   >
-                    <small className="text-muted" style={{ cursor: 'default' }}>
-                      {formatDistanceToNow(new Date(doc.createdAt), { addSuffix: true })}
-                    </small>
-                  </OverlayTrigger>
+                    {formatDistanceToNow(new Date(doc.createdAt), { addSuffix: true })}
+                  </span>
                 </td>
 
-                <td className="text-end">
-                  <ButtonGroup size="sm">
+                <td className={styles.td} style={{ textAlign: 'right' }}>
+                  <div className={styles.buttonGroup}>
                     {['DRAFT', 'PENDING_SIGNATURE', 'PARTIALLY_SIGNED'].includes(doc.status) && (
-                      <OverlayTrigger placement="top" overlay={<Tooltip>Sign document</Tooltip>}>
-                        <Button variant="outline-primary" onClick={() => setSigningDocId(doc.id)}>
-                          ✍️
-                        </Button>
-                      </OverlayTrigger>
+                      <button
+                        className={styles.actionButton}
+                        onClick={() => setSigningDocId(doc.id)}
+                        title="Sign document"
+                      >
+                        ✍️
+                      </button>
                     )}
 
-                    <OverlayTrigger placement="top" overlay={<Tooltip>Verify SHA-3 hash</Tooltip>}>
-                      <Button variant="outline-secondary" onClick={() => setVerifyDoc(doc)}>
-                        🔍
-                      </Button>
-                    </OverlayTrigger>
-
-                    <OverlayTrigger
-                      placement="top"
-                      overlay={
-                        <Tooltip>
-                          {doc.status === 'SIGNED' ? 'Download signed PDF' : 'Download original'}
-                        </Tooltip>
-                      }
+                    <button
+                      className={styles.actionButton}
+                      onClick={() => setVerifyDoc(doc)}
+                      title="Verify SHA-3 hash"
                     >
-                      <Button
-                        variant="outline-success"
-                        disabled={downloadingId === doc.id}
-                        onClick={() => handleDownload(doc)}
-                      >
-                        {downloadingId === doc.id ? <Spinner size="sm" /> : '⬇️'}
-                      </Button>
-                    </OverlayTrigger>
+                      🔍
+                    </button>
+
+                    <button
+                      className={styles.actionButton}
+                      disabled={downloadingId === doc.id}
+                      onClick={() => handleDownload(doc)}
+                      title={doc.status === 'SIGNED' ? 'Download signed PDF' : 'Download original'}
+                    >
+                      {downloadingId === doc.id ? '⏳' : '⬇️'}
+                    </button>
 
                     {['DRAFT', 'CANCELLED'].includes(doc.status) && (
-                      <OverlayTrigger placement="top" overlay={<Tooltip>Delete document</Tooltip>}>
-                        <Button
-                          variant="outline-danger"
-                          disabled={deletingId === doc.id}
-                          onClick={() => handleDelete(doc.id)}
-                        >
-                          {deletingId === doc.id ? <Spinner size="sm" /> : '🗑️'}
-                        </Button>
-                      </OverlayTrigger>
+                      <button
+                        className={styles.actionButton}
+                        disabled={deletingId === doc.id}
+                        onClick={() => handleDelete(doc.id)}
+                        title="Delete document"
+                      >
+                        {deletingId === doc.id ? '⏳' : '🗑️'}
+                      </button>
                     )}
-                  </ButtonGroup>
+                  </div>
                 </td>
               </tr>
             ))}
           </tbody>
-        </Table>
+        </table>
       </div>
 
       {signingDocId && (
@@ -273,33 +283,56 @@ export default function DocumentList({ documents, onRefresh }: Props) {
         />
       )}
 
-      <Modal show={!!verifyDoc} onHide={() => setVerifyDoc(null)}>
-        <Modal.Header closeButton>
-          <Modal.Title>Document Integrity Verification</Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
-          {verifyDoc && (
-            <>
-              <p className="mb-1"><strong>Document:</strong> {verifyDoc.title}</p>
-              <p className="mb-3"><strong>File:</strong> {verifyDoc.fileName}</p>
-              <p className="text-muted small mb-1">SHA-3 Hash (stored at upload):</p>
+      {verifyDoc && (
+        <div className={styles.modal}>
+          <div className={styles.modalContent}>
+            <div style={{ marginBottom: '20px' }}>
+              <h6 style={{ margin: '0 0 16px 0', color: 'var(--text-light)', fontWeight: 600 }}>
+                Document Integrity Verification
+              </h6>
+            </div>
+            <div>
+              <p style={{ margin: '0 0 8px 0', color: 'var(--text-light)' }}>
+                <strong>Document:</strong> {verifyDoc.title}
+              </p>
+              <p style={{ margin: '0 0 16px 0', color: 'var(--text-light)' }}>
+                <strong>File:</strong> {verifyDoc.fileName}
+              </p>
+              <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '8px' }}>
+                SHA-3 Hash (stored at upload):
+              </p>
               <code
-                className="d-block p-3 bg-light rounded"
-                style={{ fontSize: '0.75rem', wordBreak: 'break-all' }}
+                style={{
+                  display: 'block',
+                  padding: '12px',
+                  background: 'linear-gradient(135deg, #0F0F0F, #1A1A1A)',
+                  color: 'var(--text-light)',
+                  border: '1.5px solid var(--ink-border)',
+                  borderRadius: '8px',
+                  fontSize: '0.75rem',
+                  wordBreak: 'break-all',
+                  fontFamily: 'monospace',
+                  marginBottom: '16px',
+                }}
               >
                 {verifyDoc.sha3Hash}
               </code>
-              <p className="mt-3 small text-muted">
-                Run <code>sha3sum -a 256 &lt;file&gt;.pdf</code> locally to confirm
+              <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: 0 }}>
+                Run <code style={{ background: 'rgba(255,255,255,0.05)', padding: '2px 6px', borderRadius: '4px' }}>sha3sum -a 256 &lt;file&gt;.pdf</code> locally to confirm
                 the hash matches and the file has not been tampered with.
               </p>
-            </>
-          )}
-        </Modal.Body>
-        <Modal.Footer>
-          <Button variant="secondary" onClick={() => setVerifyDoc(null)}>Close</Button>
-        </Modal.Footer>
-      </Modal>
+            </div>
+            <div style={{ marginTop: '20px', display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
+              <button
+                className={`${styles.button} ${styles.buttonSecondary}`}
+                onClick={() => setVerifyDoc(null)}
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   )
 }

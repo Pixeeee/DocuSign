@@ -1,0 +1,90 @@
+C:\projects\esign-platform
+|-- .pnpm
+|-- .turbo
+  |-- cache
+|-- .vercel
+|-- .vscode
+|-- apps
+  |-- api
+    |-- .storage
+      |-- uploads
+        |-- documents
+          |-- cmnhht9em0005n4v3kxqhre1z
+            |-- 2026
+        |-- signed
+          |-- cmnhht9em0005n4v3kxqhre1z
+            |-- 2026
+    |-- .turbo
+    |-- dist
+    |-- keys
+    |-- logs
+    |-- node_modules
+    |-- scripts
+    |-- src
+      |-- middleware
+      |-- routes
+      |-- services
+      |-- utils
+  |-- docs
+    |-- .next
+    |-- .turbo
+    |-- app
+      |-- fonts
+    |-- node_modules
+    |-- public
+  |-- web
+    |-- .next
+    |-- .turbo
+    |-- app
+      |-- api
+        |-- auth
+          |-- [...nextauth]
+      |-- auth
+        |-- error
+        |-- login
+        |-- register
+      |-- components
+      |-- dashboard
+      |-- fonts
+      |-- lib
+    |-- node_modules
+    |-- public
+    |-- types
+|-- node_modules
+|-- packages
+  |-- auth
+  |-- crypto
+    |-- .turbo
+    |-- dist
+    |-- node_modules
+    |-- src
+  |-- db
+    |-- .turbo
+    |-- dist
+    |-- node_modules
+    |-- prisma
+      |-- migrations
+        |-- 20260328105750_init
+      |-- prisma
+        |-- generated
+          |-- runtime
+    |-- src
+  |-- eslint-config
+    |-- node_modules
+  |-- payments
+    |-- .turbo
+    |-- dist
+    |-- node_modules
+    |-- src
+  |-- types
+  |-- typescript-config
+  |-- ui
+    |-- .turbo
+    |-- node_modules
+    |-- src
+  |-- utils
+    |-- .turbo
+    |-- dist
+    |-- node_modules
+    |-- src
+|-- scripts

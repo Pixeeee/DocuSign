@@ -4,11 +4,11 @@ import { useRef, useState, useEffect } from 'react'
 import { useSession } from 'next-auth/react'
 import type { AxiosError } from 'axios'
 import type { Role, PlanType } from '@esign/db'
-import { Modal, Button, Alert, Tabs, Tab, Spinner } from 'react-bootstrap'
 import SignatureCanvas from 'react-signature-canvas'
 import axios from 'axios'
 import { v4 as uuidv4 } from 'uuid'
 import X402PaymentModal from './X402PaymentModal'
+import styles from './SignatureModal.module.css'
 
 interface ExtendedUser {
   id: string
@@ -167,77 +167,142 @@ export default function SignatureModal({
         }}
       />
 
-      <Modal show={show} onHide={onHide} size="lg">
-        <Modal.Header closeButton>
-          <Modal.Title>Sign Document</Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
-          {error && <Alert variant="danger">{error}</Alert>}
-          {paymentRequired && !showPaymentModal && (
-            <Alert variant="warning">
-              Payment required: {paymentRequired.message}
-            </Alert>
-          )}
+      {show && (
+        <div className={styles.modalOverlay}>
+          <div className={styles.modal}>
+            <div className={styles.modalHeader}>
+              <h5 className={styles.modalTitle}>Sign Document</h5>
+            </div>
+            <div className={styles.modalBody}>
+              {error && (
+                <div className={`${styles.alert} ${styles.alertError}`} style={{ marginBottom: '16px' }}>
+                  <span className={styles.alertIcon}>⚠️</span>
+                  <span>{error}</span>
+                </div>
+              )}
+              {paymentRequired && !showPaymentModal && (
+                <div style={{
+                  padding: '12px 14px',
+                  border: `1.5px solid var(--color-warning)`,
+                  borderRadius: '8px',
+                  background: 'linear-gradient(135deg, rgba(201, 158, 61, 0.1), rgba(201, 158, 61, 0.05))',
+                  color: '#E8C86F',
+                  fontSize: '12px',
+                  marginBottom: '16px',
+                  display: 'flex',
+                  gap: '10px',
+                  alignItems: 'flex-start',
+                }}>
+                  <span>⚡</span>
+                  <span>Payment required: {paymentRequired.message}</span>
+                </div>
+              )}
 
-          <Tabs activeKey={activeTab} onSelect={(k) => setActiveTab(k || 'draw')}>
-            <Tab eventKey="draw" title="Draw Signature">
-              <div className="border rounded mt-3" style={{ cursor: 'crosshair' }}>
-                <SignatureCanvas
-                  ref={sigCanvasRef}
-                  penColor="#000066"
-                  canvasProps={{
-                    width: 600,
-                    height: 200,
-                    className: 'w-100',
-                    style: { background: '#fafafa' },
-                  }}
-                />
+              <div className={styles.signatureContainer}>
+                <div className={styles.tabNavigation} style={{ marginBottom: '10px' }}>
+                  <button
+                    className={`${styles.tab} ${activeTab === 'draw' ? styles.tabActive : ''}`}
+                    onClick={() => setActiveTab('draw')}
+                  >
+                    ✏️ Draw Signature
+                  </button>
+                  <button
+                    className={`${styles.tab} ${activeTab === 'type' ? styles.tabActive : ''}`}
+                    onClick={() => setActiveTab('type')}
+                  >
+                    ⌨️ Type Name
+                  </button>
+                </div>
+
+                {activeTab === 'draw' && (
+                  <div className={styles.signatureContainer} style={{ marginTop: '8px' }}>
+                    <div className={styles.canvasWrapper}>
+                      <SignatureCanvas
+                        ref={sigCanvasRef}
+                        penColor="#4A7C5E"
+                        canvasProps={{
+                          width: 600,
+                          height: 200,
+                          className: styles.canvas,
+                        }}
+                      />
+                    </div>
+                    <div className={styles.controls}>
+                      <button
+                        className={styles.controlButton}
+                        onClick={clearSignature}
+                      >
+                        Clear Drawing
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {activeTab === 'type' && (
+                  <div className={styles.typedContainer} style={{ marginTop: '8px' }}>
+                    <div className={styles.formGroup}>
+                      <label className={styles.label}>Full Legal Name</label>
+                      <input
+                        type="text"
+                        className={styles.input}
+                        placeholder="Type your full legal name"
+                        value={typedName}
+                        onChange={(e) => setTypedName(e.target.value)}
+                      />
+                      <small style={{ fontSize: '10px', color: 'var(--text-muted)', marginTop: '4px', display: 'block' }}>
+                        By typing your name, you agree this is your legal signature
+                      </small>
+                    </div>
+                    {typedName && (
+                      <div className={styles.signaturePreview}>
+                        {typedName}
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
-              <Button
-                variant="outline-secondary"
-                size="sm"
-                className="mt-2"
-                onClick={clearSignature}
-              >
-                Clear
-              </Button>
-            </Tab>
-            <Tab eventKey="type" title="Type Name">
-              <div className="mt-3">
-                <input
-                  type="text"
-                  className="form-control form-control-lg"
-                  placeholder="Type your full legal name"
-                  value={typedName}
-                  onChange={(e) => setTypedName(e.target.value)}
-                  style={{ fontFamily: 'cursive', fontSize: '1.5rem' }}
-                />
-                <small className="text-muted">
-                  By typing your name, you agree this is your legal signature
+
+              <div style={{
+                marginTop: '14px',
+                marginBottom: '0',
+                padding: '10px 12px',
+                background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.03), rgba(255, 255, 255, 0.01))',
+                border: '1.5px solid var(--ink-border)',
+                borderRadius: '6px',
+                flexShrink: 0,
+              }}>
+                <small style={{ color: 'var(--text-muted)', fontSize: '10px', lineHeight: '1.4', display: 'block' }}>
+                  <strong style={{ color: 'var(--text-light)' }}>Legal Notice:</strong> By signing, you agree your electronic signature is legally binding under applicable e-signature laws. This signature is cryptographically protected with RSA-2048 and SHA-3 hashing.
                 </small>
               </div>
-            </Tab>
-          </Tabs>
-
-          <div className="mt-3 p-3 bg-light rounded">
-            <small className="text-muted">
-              <strong>Legal Notice:</strong> By signing this document, you agree that your electronic
-              signature is legally binding under applicable e-signature laws. This signature is
-              cryptographically protected with RSA-2048 and SHA-3 hashing.
-            </small>
+            </div>
+            <div className={styles.modalFooter}>
+              <div className={styles.buttonGroup}>
+                <button
+                  className={`${styles.button} ${styles.buttonSecondary}`}
+                  onClick={onHide}
+                >
+                  Cancel
+                </button>
+                <button
+                  className={`${styles.button} ${styles.buttonPrimary}`}
+                  onClick={handleSign}
+                  disabled={signing || (paymentRequired !== null && !paymentToken)}
+                >
+                  {signing ? (
+                    <>
+                      <span className={styles.spinner} />
+                      Signing...
+                    </>
+                  ) : (
+                    '✍️ Sign Document'
+                  )}
+                </button>
+              </div>
+            </div>
           </div>
-        </Modal.Body>
-        <Modal.Footer>
-          <Button variant="secondary" onClick={onHide}>Cancel</Button>
-          <Button
-            variant="success"
-            onClick={handleSign}
-            disabled={signing || (paymentRequired !== null && !paymentToken)}
-          >
-            {signing ? <><Spinner size="sm" /> Signing...</> : '✍️ Sign Document'}
-          </Button>
-        </Modal.Footer>
-      </Modal>
+        </div>
+      )}
     </>
   )
 }

@@ -1,72 +1,185 @@
 'use client'
 
 import { useState } from 'react'
-import { signIn } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import axios from 'axios'
+import styles from './register.module.css'
 
-interface PasswordStrength {
-  score: number
-  label: string
-  color: string
+interface FormData {
+  email: string
+  password: string
+  confirmPassword: string
+  firstName: string
+  lastName: string
+  company: string
+  role: string
+  agreedToTerms: boolean
 }
 
-function getPasswordStrength(password: string): PasswordStrength {
+type StepKey = 'account' | 'profile' | 'confirm'
+
+interface Step {
+  key: StepKey
+  label: string
+  completed: boolean
+}
+
+const CheckIcon = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+    <polyline points="20 6 9 17 4 12" />
+  </svg>
+)
+
+const LeftPanel = () => (
+  <div className={styles.left}>
+    {/* Grid texture */}
+    <div className={styles.leftGrid} aria-hidden="true" />
+
+    {/* Card stack illustration */}
+    <div className={styles.cardStack} aria-hidden="true">
+      <div className={`${styles.card} ${styles.cardB1}`} />
+      <div className={`${styles.card} ${styles.cardB2}`} />
+      <div className={`${styles.card} ${styles.cardHero}`}>
+        <div className={styles.cardInner}>
+          <span className={styles.signWord}>SIGN</span>
+          <div className={styles.signRule} />
+          <span className={styles.hereWord}>HERE</span>
+
+          {/* Ruled lines */}
+          <div className={styles.ruledLines}>
+            {[0, 1, 2, 3].map((i) => (
+              <div key={i} className={styles.ruleLine}>
+                <span className={styles.xMark}>×</span>
+                <span className={styles.ruleBar} />
+              </div>
+            ))}
+          </div>
+
+          {/* Signature strokes */}
+          <svg className={styles.sigSvg} viewBox="0 0 340 80" fill="none">
+            <path d="M8 24 Q38 8 66 20 Q100 4 128 16" stroke="#5A5A5A" strokeWidth="2" strokeLinecap="round"/>
+            <path d="M150 30 Q182 14 212 26 Q244 10 272 22" stroke="#5A5A5A" strokeWidth="2" strokeLinecap="round"/>
+            <path d="M10 56 Q50 40 88 52 Q132 36 170 48 Q208 32 246 44" stroke="#484848" strokeWidth="1.5" strokeLinecap="round"/>
+          </svg>
+        </div>
+      </div>
+    </div>
+
+    {/* Bottom brand */}
+    <div className={styles.leftBrand}>
+      <div className={styles.leftRule} />
+      <p className={styles.leftLabel}>
+        INK COVENANT — Join the Platform
+      </p>
+    </div>
+
+    {/* Dot matrix */}
+    <div className={styles.dotMatrix} aria-hidden="true">
+      {Array.from({ length: 25 }).map((_, i) => (
+        <span key={i} className={styles.dot} />
+      ))}
+    </div>
+  </div>
+)
+
+function getPasswordStrength(password: string): string {
   let score = 0
-  if (password.length >= 12) score++
+  if (password.length >= 8) score++
   if (/[A-Z]/.test(password)) score++
   if (/[a-z]/.test(password)) score++
   if (/[0-9]/.test(password)) score++
   if (/[^A-Za-z0-9]/.test(password)) score++
 
-  const levels: PasswordStrength[] = [
-    { score: 0, label: '', color: '' },
-    { score: 1, label: 'Very weak', color: 'danger' },
-    { score: 2, label: 'Weak', color: 'warning' },
-    { score: 3, label: 'Fair', color: 'info' },
-    { score: 4, label: 'Strong', color: 'primary' },
-    { score: 5, label: 'Very strong', color: 'success' },
-  ]
-
-  return levels[score]
+  if (score < 2) return 'weak'
+  if (score < 4) return 'good'
+  return 'strong'
 }
 
 export default function RegisterPage() {
   const router = useRouter()
-  const [form, setForm] = useState({
-    firstName: '',
-    lastName: '',
+  const [form, setForm] = useState<FormData>({
     email: '',
     password: '',
     confirmPassword: '',
+    firstName: '',
+    lastName: '',
+    company: '',
+    role: '',
+    agreedToTerms: false,
   })
+
+  const [step, setStep] = useState<StepKey>('account')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const [transitioning, setTrans] = useState(false)
+
+  const steps: Step[] = [
+    { key: 'account', label: 'Account', completed: step !== 'account' },
+    { key: 'profile', label: 'Profile', completed: step === 'confirm' },
+    { key: 'confirm', label: 'Confirm', completed: false },
+  ]
 
   const strength = getPasswordStrength(form.password)
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setForm((f) => ({ ...f, [e.target.name]: e.target.value }))
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const { name, value, type } = e.target as HTMLInputElement
+    if (type === 'checkbox') {
+      setForm((f) => ({ ...f, [name]: (e.target as HTMLInputElement).checked }))
+    } else {
+      setForm((f) => ({ ...f, [name]: value }))
+    }
+  }
+
+  const handleNext = () => {
+    setError('')
+
+    if (step === 'account') {
+      if (!form.email || !form.password || !form.confirmPassword) {
+        setError('Please fill in all fields')
+        return
+      }
+      if (form.password !== form.confirmPassword) {
+        setError('Passwords do not match')
+        return
+      }
+      if (form.password.length < 8) {
+        setError('Password must be at least 8 characters')
+        return
+      }
+      setStep('profile')
+    } else if (step === 'profile') {
+      if (!form.firstName || !form.lastName) {
+        setError('Please enter your name')
+        return
+      }
+      setStep('confirm')
+    }
+  }
+
+  const handleBack = () => {
+    if (step === 'profile') setStep('account')
+    else if (step === 'confirm') setStep('profile')
+  }
+
+  const handleSignIn = () => {
+    setTrans(true)
+    setTimeout(() => {
+      router.push('/auth/login')
+    }, 380)
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
 
-    if (form.password !== form.confirmPassword) {
-      setError('Passwords do not match')
-      return
-    }
-
-    if (strength.score < 4) {
-      setError('Password is too weak. Use 12+ chars with uppercase, lowercase, number and symbol.')
+    if (!form.agreedToTerms) {
+      setError('Please accept the terms and conditions')
       return
     }
 
     setLoading(true)
 
     try {
-      // Register user via Express API
       const response = await axios.post(
         `${process.env.NEXT_PUBLIC_API_URL}/api/auth/register`,
         {
@@ -74,32 +187,16 @@ export default function RegisterPage() {
           lastName: form.lastName,
           email: form.email,
           password: form.password,
+          company: form.company,
+          role: form.role,
         }
       )
 
-      // Store tokens from Express API response
       const { accessToken, refreshToken } = response.data
-      if (accessToken) {
-        localStorage.setItem('accessToken', accessToken)
-      }
-      if (refreshToken) {
-        localStorage.setItem('refreshToken', refreshToken)
-      }
+      if (accessToken) localStorage.setItem('accessToken', accessToken)
+      if (refreshToken) localStorage.setItem('refreshToken', refreshToken)
 
-      // Automatically sign in user with NextAuth
-      const signInResult = await signIn('credentials', {
-        email: form.email,
-        password: form.password,
-        redirect: false,
-      })
-
-      if (signInResult?.ok) {
-        // Redirect to dashboard on successful sign-in
-        router.push('/dashboard')
-      } else {
-        // If auto sign-in fails, redirect to login with registered flag
-        router.push('/auth/login?registered=true')
-      }
+      router.push('/auth/login?registered=true')
     } catch (err) {
       const axiosError = err as { response?: { data?: { error?: string } } }
       setError(axiosError.response?.data?.error || 'Registration failed. Please try again.')
@@ -109,134 +206,320 @@ export default function RegisterPage() {
   }
 
   return (
-    <div
-      className="d-flex align-items-center justify-content-center min-vh-100 py-4"
-      style={{ background: '#f0f2f5' }}
-    >
-      <div className="card shadow-sm" style={{ width: '100%', maxWidth: 460 }}>
-        <div className="card-body p-4">
+    <div className={styles.page}>
+      <div className={`${styles.card2} ${transitioning ? styles.cardSlide : ''}`}>
+        {/* Left: always visible illustration */}
+        <LeftPanel />
 
-          {/* Header */}
-          <div className="text-center mb-4">
-            <div style={{ fontSize: '2rem' }}>✍️</div>
-            <h4 className="fw-bold mb-0">Create your account</h4>
-            <p className="text-muted small">Start signing documents securely</p>
-          </div>
+        {/* Right: multi-step form area */}
+        <div className={styles.right}>
+          {/* Step 1: Account */}
+          <div className={`${styles.formPanel} ${step === 'account' ? styles.panelVisible : styles.panelHidden}`}>
+            <div className={styles.formHead}>
+              <h1 className={styles.formTitle}>Create Your Account</h1>
+              <p className={styles.formSub}>Step 1 of 3: Account Details</p>
+            </div>
 
-          {error && (
-            <div className="alert alert-danger py-2 small">{error}</div>
-          )}
+            {/* Stepper */}
+            <div className={styles.stepper}>
+              {steps.map((s, i) => (
+                <div key={s.key} className={styles.stepItem}>
+                  <div className={`${styles.stepDot} ${step === s.key || s.completed ? styles.stepDotActive : ''}`}>
+                    {s.completed ? <CheckIcon /> : <span>{i + 1}</span>}
+                  </div>
+                  {i < steps.length - 1 && (
+                    <div className={`${styles.stepLine} ${s.completed ? styles.stepLineActive : ''}`} />
+                  )}
+                </div>
+              ))}
+            </div>
 
-          <form onSubmit={handleSubmit}>
-            {/* Name row */}
-            <div className="row g-2 mb-3">
-              <div className="col">
-                <label className="form-label fw-semibold small">First name</label>
+            {error && <div className={styles.alertBox}>{error}</div>}
+
+            <form onSubmit={(e) => { e.preventDefault(); handleNext(); }} className={styles.form}>
+              <div className={styles.field}>
+                <label className={styles.label}>Email Address</label>
                 <input
-                  type="text"
-                  name="firstName"
-                  className="form-control"
-                  placeholder="Jane"
-                  value={form.firstName}
+                  type="email"
+                  name="email"
+                  value={form.email}
                   onChange={handleChange}
+                  placeholder="you@example.com"
+                  className={styles.input}
                   required
                   autoFocus
                 />
               </div>
-              <div className="col">
-                <label className="form-label fw-semibold small">Last name</label>
+
+              <div className={styles.field}>
+                <label className={styles.label}>Password</label>
                 <input
-                  type="text"
-                  name="lastName"
-                  className="form-control"
-                  placeholder="Smith"
-                  value={form.lastName}
+                  type="password"
+                  name="password"
+                  value={form.password}
                   onChange={handleChange}
+                  placeholder="Minimum 8 characters"
+                  className={styles.input}
                   required
                 />
-              </div>
-            </div>
-
-            {/* Email */}
-            <div className="mb-3">
-              <label className="form-label fw-semibold small">Email</label>
-              <input
-                type="email"
-                name="email"
-                className="form-control"
-                placeholder="you@example.com"
-                value={form.email}
-                onChange={handleChange}
-                required
-              />
-            </div>
-
-            {/* Password */}
-            <div className="mb-2">
-              <label className="form-label fw-semibold small">Password</label>
-              <input
-                type="password"
-                name="password"
-                className="form-control"
-                placeholder="Min 12 characters"
-                value={form.password}
-                onChange={handleChange}
-                required
-              />
-              {/* Strength bar */}
-              {form.password.length > 0 && (
-                <div className="mt-2">
-                  <div className="progress" style={{ height: 4 }}>
-                    <div
-                      className={`progress-bar bg-${strength.color}`}
-                      style={{ width: `${(strength.score / 5) * 100}%`, transition: 'width 0.3s' }}
-                    />
+                {form.password && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '-6px' }}>
+                    <div style={{ flex: 1, height: '3px', background: '#E0DDD8', borderRadius: '2px', overflow: 'hidden' }}>
+                      <div
+                        style={{
+                          height: '100%',
+                          borderRadius: '2px',
+                          background: strength === 'weak' ? '#CD5854' : strength === 'good' ? '#D4A857' : '#5FA25F',
+                          transition: 'width 0.3s ease, background 0.3s ease',
+                          width: strength === 'weak' ? '33%' : strength === 'good' ? '66%' : '100%',
+                        }}
+                      />
+                    </div>
+                    <span style={{ fontSize: '11px', fontWeight: 400, color: strength === 'weak' ? '#CD5854' : strength === 'good' ? '#D4A857' : '#5FA25F', minWidth: '36px', textAlign: 'right' }}>
+                      {strength.charAt(0).toUpperCase() + strength.slice(1)}
+                    </span>
                   </div>
-                  <div className={`small text-${strength.color} mt-1`}>
-                    {strength.label}
-                  </div>
-                </div>
-              )}
-              <div className="form-text">
-                Must be 12+ chars with uppercase, lowercase, number and symbol.
+                )}
               </div>
-            </div>
 
-            {/* Confirm password */}
-            <div className="mb-4">
-              <label className="form-label fw-semibold small">Confirm password</label>
-              <input
-                type="password"
-                name="confirmPassword"
-                className="form-control"
-                placeholder="Re-enter password"
-                value={form.confirmPassword}
-                onChange={handleChange}
-                required
-              />
-              {form.confirmPassword.length > 0 && form.password !== form.confirmPassword && (
-                <div className="small text-danger mt-1">Passwords do not match</div>
-              )}
-            </div>
+              <div className={styles.field}>
+                <label className={styles.label}>Confirm Password</label>
+                <input
+                  type="password"
+                  name="confirmPassword"
+                  value={form.confirmPassword}
+                  onChange={handleChange}
+                  placeholder="Re-enter password"
+                  className={styles.input}
+                  required
+                />
+                {form.confirmPassword && form.password !== form.confirmPassword && (
+                  <div className={styles.fieldHint} style={{ color: '#CD5854' }}>
+                    Passwords do not match
+                  </div>
+                )}
+              </div>
 
-            <button
-              type="submit"
-              className="btn btn-primary w-100"
-              disabled={loading}
-            >
-              {loading
-                ? <span className="spinner-border spinner-border-sm me-2" />
-                : null}
-              Create Account
+              <button type="submit" className={styles.primaryBtn}>
+                Continue
+              </button>
+            </form>
+
+            <p className={styles.termsNote}>
+              Already have an account?{' '}
+              <button 
+                type="button"
+                onClick={handleSignIn}
+                className={styles.termsLink}
+                style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', font: 'inherit' }}
+              >
+                Sign in
+              </button>
+            </p>
+          </div>
+
+          {/* Step 2: Profile */}
+          <div className={`${styles.formPanel} ${step === 'profile' ? styles.panelVisible : styles.panelHidden}`}>
+            <button className={styles.backBtn} onClick={handleBack}>
+              ← Back
             </button>
-          </form>
 
-          <p className="text-center text-muted small mt-4 mb-0">
-            Already have an account?{' '}
-            <a href="/auth/login" className="text-decoration-none fw-semibold">
-              Sign in
-            </a>
-          </p>
+            <div className={styles.formHead}>
+              <h1 className={styles.formTitle}>Create Your Account</h1>
+              <p className={styles.formSub}>Step 2 of 3: Profile Information</p>
+            </div>
+
+            {/* Stepper */}
+            <div className={styles.stepper}>
+              {steps.map((s, i) => (
+                <div key={s.key} className={styles.stepItem}>
+                  <div className={`${styles.stepDot} ${step === s.key || s.completed ? styles.stepDotActive : ''}`}>
+                    {s.completed ? <CheckIcon /> : <span>{i + 1}</span>}
+                  </div>
+                  {i < steps.length - 1 && (
+                    <div className={`${styles.stepLine} ${s.completed ? styles.stepLineActive : ''}`} />
+                  )}
+                </div>
+              ))}
+            </div>
+
+            {error && <div className={styles.alertBox}>{error}</div>}
+
+            <form onSubmit={(e) => { e.preventDefault(); handleNext(); }} className={styles.form}>
+              <div className={styles.fieldRow}>
+                <div className={styles.field}>
+                  <label className={styles.label}>First Name</label>
+                  <input
+                    type="text"
+                    name="firstName"
+                    value={form.firstName}
+                    onChange={handleChange}
+                    placeholder="Jane"
+                    className={styles.input}
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className={styles.fieldRow}>
+                <div className={styles.field}>
+                  <label className={styles.label}>Last Name</label>
+                  <input
+                    type="text"
+                    name="lastName"
+                    value={form.lastName}
+                    onChange={handleChange}
+                    placeholder="Smith"
+                    className={styles.input}
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className={styles.fieldRow}>
+                <div className={styles.field}>
+                  <label className={styles.label}>
+                    Company <span style={{ color: 'var(--text-muted)', fontWeight: 300 }}>(optional)</span>
+                  </label>
+                  <input
+                    type="text"
+                    name="company"
+                    value={form.company}
+                    onChange={handleChange}
+                    placeholder="Your company"
+                    className={styles.input}
+                  />
+                </div>
+              </div>
+
+              <div className={styles.fieldRow}>
+                <div className={styles.field}>
+                  <label className={styles.label}>
+                    Role <span style={{ color: 'var(--text-muted)', fontWeight: 300 }}>(optional)</span>
+                  </label>
+                  <select
+                    name="role"
+                    value={form.role}
+                    onChange={handleChange}
+                    className={`${styles.input} ${styles.select}`}
+                  >
+                    <option value="">Select a role</option>
+                    <option value="owner">Business Owner</option>
+                    <option value="manager">Manager</option>
+                    <option value="employee">Employee</option>
+                    <option value="other">Other</option>
+                  </select>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', gap: '12px', marginTop: '20px' }}>
+                <button type="button" onClick={handleBack} className={styles.secondaryBtn}>
+                  Back
+                </button>
+                <button type="submit" className={styles.primaryBtn}>
+                  Review
+                </button>
+              </div>
+            </form>
+          </div>
+
+          {/* Step 3: Confirm */}
+          <div className={`${styles.formPanel} ${step === 'confirm' ? styles.panelVisible : styles.panelHidden}`}>
+            <button className={styles.backBtn} onClick={handleBack}>
+              ← Back
+            </button>
+
+            <div className={styles.formHead}>
+              <h1 className={styles.formTitle}>Create Your Account</h1>
+              <p className={styles.formSub}>Step 3 of 3: Review & Confirm</p>
+            </div>
+
+            {/* Stepper */}
+            <div className={styles.stepper}>
+              {steps.map((s, i) => (
+                <div key={s.key} className={styles.stepItem}>
+                  <div className={`${styles.stepDot} ${step === s.key || s.completed ? styles.stepDotActive : ''}`}>
+                    {s.completed ? <CheckIcon /> : <span>{i + 1}</span>}
+                  </div>
+                  {i < steps.length - 1 && (
+                    <div className={`${styles.stepLine} ${s.completed ? styles.stepLineActive : ''}`} />
+                  )}
+                </div>
+              ))}
+            </div>
+
+            {error && <div className={styles.alertBox}>{error}</div>}
+
+            <form onSubmit={handleSubmit} className={styles.form}>
+              <div className={styles.reviewCard}>
+                <div className={styles.reviewSection}>
+                  <h4 style={{ margin: '0 0 8px 0', fontSize: '13px', fontWeight: 600, color: '#5C5A57' }}>
+                    Account Details
+                  </h4>
+                  <p style={{ margin: '4px 0', fontSize: '14px', color: '#080808' }}>
+                    {form.email}
+                  </p>
+                </div>
+
+                <div className={styles.reviewSection}>
+                  <h4 style={{ margin: '0 0 8px 0', fontSize: '13px', fontWeight: 600, color: '#5C5A57' }}>
+                    Profile Information
+                  </h4>
+                  <p style={{ margin: '4px 0', fontSize: '14px', color: '#080808' }}>
+                    {form.firstName} {form.lastName}
+                  </p>
+                  {form.company && (
+                    <p style={{ margin: '4px 0', fontSize: '14px', color: '#080808' }}>
+                      {form.company}
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              <div className={styles.fieldRow}>
+                <label style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', cursor: 'pointer' }}>
+                  <input
+                    type="checkbox"
+                    name="agreedToTerms"
+                    checked={form.agreedToTerms}
+                    onChange={handleChange}
+                    style={{
+                      width: '18px',
+                      height: '18px',
+                      marginTop: '2px',
+                      cursor: 'pointer',
+                      accentColor: '#080808',
+                    }}
+                  />
+                  <span style={{ fontSize: '13px', color: '#5C5A57' }}>
+                    I agree to the{' '}
+                    <a
+                      href="/terms"
+                      style={{ color: '#080808', fontWeight: 600, textDecoration: 'none' }}
+                    >
+                      Terms & Conditions
+                    </a>
+                  </span>
+                </label>
+              </div>
+
+              <div style={{ display: 'flex', gap: '12px', marginTop: '20px' }}>
+                <button type="button" onClick={handleBack} className={styles.secondaryBtn}>
+                  Back
+                </button>
+                <button type="submit" disabled={loading} className={styles.primaryBtn}>
+                  {loading ? (
+                    <>
+                      <span className={styles.spinner} />
+                      Creating Account...
+                    </>
+                  ) : (
+                    'Create Account'
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
       </div>
     </div>

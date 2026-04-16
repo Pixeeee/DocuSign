@@ -1,8 +1,8 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { Button, Modal, Alert, Spinner } from 'react-bootstrap'
 import { BrowserProvider, parseEther, formatEther } from 'ethers'
+import styles from './X402PaymentModal.module.css'
 
 interface EthereumProvider {
   request: (args: { method: string; params?: unknown[] }) => Promise<unknown>
@@ -120,8 +120,6 @@ export default function X402PaymentModal({
     }
   }
 
-
-
   const processPayment = async () => {
     if (!walletAddress) {
       setError('Wallet not connected')
@@ -134,10 +132,6 @@ export default function X402PaymentModal({
     try {
       const provider = new BrowserProvider(window.ethereum as EthereumProvider)
       const signer = await provider.getSigner()
-
-      // For X402, we need to send ETH to trigger payment
-      // In a real implementation, this would be a smart contract call
-      // For testing, we'll simulate the payment
 
       const tx = await signer.sendTransaction({
         to: process.env.NEXT_PUBLIC_X402_WALLET || '0xF5a795CacA94Ac1bDeEc36a52769Dae0d5E8DEF2',
@@ -162,96 +156,149 @@ export default function X402PaymentModal({
   }
 
   return (
-    <Modal show={show} onHide={onHide} size="lg" backdrop="static">
-      <Modal.Header closeButton>
-        <Modal.Title>Payment Required - X402</Modal.Title>
-      </Modal.Header>
-      <Modal.Body>
-        {error && <Alert variant="danger">{error}</Alert>}
-
-        <div className="mb-4">
-          <h6>Payment Details</h6>
-          <p>
-            <strong>Amount:</strong> {amount} ETH
-          </p>
-          <p>
-            <strong>Resource:</strong> {resource}
-          </p>
-          <p>
-            <strong>Description:</strong> {description}
-          </p>
-          <p>
-            <strong>Network:</strong> Base Sepolia{' '}
-            <a href={BASE_SEPOLIA_CONFIG.blockExplorerUrl} target="_blank" rel="noopener noreferrer">
-              (Explorer)
-            </a>
-          </p>
-        </div>
-
-        {!walletAddress ? (
-          <div className="d-grid gap-2">
-            <Button
-              variant="primary"
-              size="lg"
-              onClick={connectWallet}
-              disabled={isConnecting}
-            >
-              {isConnecting ? (
-                <>
-                  <Spinner animation="border" size="sm" className="me-2" />
-                  Connecting...
-                </>
-              ) : (
-                '🔗 Connect Wallet'
-              )}
-            </Button>
-            <small className="text-muted">
-              Make sure you have MetaMask or a compatible Web3 wallet installed.
-            </small>
-          </div>
-        ) : (
-          <div>
-            <div className="alert alert-info mb-3">
-              <strong>Connected:</strong> {walletAddress.slice(0, 6)}...{walletAddress.slice(-4)}
-            </div>
-
-            {balance && (
-              <p className="mb-3">
-                <strong>Balance:</strong> {balance} ETH
-              </p>
-            )}
-
-            <div className="d-grid gap-2">
-              <Button
-                variant="success"
-                size="lg"
-                onClick={processPayment}
-                disabled={isProcessing}
+    <>
+      {show && (
+        <div className={styles.modalOverlay}>
+          <div className={styles.modal}>
+            <div className={styles.modalHeader}>
+              <div>
+                <h5 className={styles.modalTitle}>Payment Required - X402</h5>
+                <p className={styles.modalSubtitle}>Blockchain-based payment processing</p>
+              </div>
+              <button
+                className={styles.closeButton}
+                onClick={onHide}
+                aria-label="Close"
               >
-                {isProcessing ? (
-                  <>
-                    <Spinner animation="border" size="sm" className="me-2" />
-                    Processing Payment...
-                  </>
-                ) : (
-                  `💳 Pay ${amount} ETH`
-                )}
-              </Button>
+                ✕
+              </button>
             </div>
+            <div className={styles.modalBody}>
+              {error && (
+                <div className={`${styles.alert} ${styles.alertError}`} style={{ marginBottom: '20px' }}>
+                  <span className={styles.alertIcon}>⚠️</span>
+                  <div className={styles.alertText}>
+                    <div className={styles.alertTitle}>Payment Error</div>
+                    <div className={styles.alertDescription}>{error}</div>
+                  </div>
+                </div>
+              )}
 
-            <Button
-              variant="outline-secondary"
-              className="mt-2 w-100"
-              onClick={() => {
-                setWalletAddress('')
-                setBalance('')
-              }}
-            >
-              Disconnect Wallet
-            </Button>
+              <div className={styles.section} style={{ marginBottom: '24px' }}>
+                <h6 className={styles.sectionTitle}>💰 Payment Details</h6>
+                <div className={styles.infoCard}>
+                  <p className={styles.infoLabel}>Amount</p>
+                  <p className={styles.infoValue}>{amount} ETH</p>
+                </div>
+                <div className={styles.infoCard}>
+                  <p className={styles.infoLabel}>Resource</p>
+                  <p className={styles.infoValue}>{resource}</p>
+                </div>
+                <div className={styles.infoCard}>
+                  <p className={styles.infoLabel}>Description</p>
+                  <p className={styles.infoValue}>{description}</p>
+                </div>
+                <div className={styles.infoCard}>
+                  <p className={styles.infoLabel}>Network</p>
+                  <p className={styles.infoValue}>
+                    Base Sepolia{' '}
+                    <a
+                      href={BASE_SEPOLIA_CONFIG.blockExplorerUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={{ color: 'var(--color-success)', textDecoration: 'none', fontWeight: '500' }}
+                    >
+                      (Explorer ↗)
+                    </a>
+                  </p>
+                </div>
+              </div>
+
+              {!walletAddress ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                  <button
+                    className={`${styles.button} ${styles.buttonPrimary}`}
+                    onClick={connectWallet}
+                    disabled={isConnecting}
+                    style={{ width: '100%' }}
+                  >
+                    {isConnecting ? (
+                      <>
+                        <span className={styles.spinner} />
+                        Connecting...
+                      </>
+                    ) : (
+                      '🔗 Connect MetaMask Wallet'
+                    )}
+                  </button>
+                  <small style={{ color: 'var(--text-muted)', fontSize: '11px', textAlign: 'center' }}>
+                    Make sure you have MetaMask or a compatible Web3 wallet installed.
+                  </small>
+                </div>
+              ) : (
+                <div>
+                  <div className={`${styles.statusIndicator} ${styles.statusConnected}`} style={{ marginBottom: '16px' }}>
+                    <span className={`${styles.statusDot} ${styles.statusDotConnected}`} />
+                    <span>
+                      Connected: {walletAddress.slice(0, 6)}...{walletAddress.slice(-4)}
+                    </span>
+                  </div>
+
+                  {balance && (
+                    <div className={styles.balanceRow} style={{ marginBottom: '16px' }}>
+                      <span className={styles.balanceLabel}>Wallet Balance</span>
+                      <span className={`${styles.balanceValue} ${parseFloat(balance) < parseFloat(amount) ? styles.balanceDanger : ''}`}>
+                        {balance} ETH
+                      </span>
+                    </div>
+                  )}
+
+                  {parseFloat(balance) < parseFloat(amount) && (
+                    <div className={`${styles.alert} ${styles.alertWarning}`} style={{ marginBottom: '16px' }}>
+                      <span className={styles.alertIcon}>⚠️</span>
+                      <div className={styles.alertText}>
+                        <div className={styles.alertTitle}>Insufficient Balance</div>
+                        <div className={styles.alertDescription}>
+                          You need at least {amount} ETH in your wallet to complete this payment.
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                    <button
+                      className={`${styles.button} ${styles.buttonPrimary}`}
+                      onClick={processPayment}
+                      disabled={isProcessing || parseFloat(balance) < parseFloat(amount)}
+                      style={{ width: '100%' }}
+                    >
+                      {isProcessing ? (
+                        <>
+                          <span className={styles.spinner} />
+                          Processing Payment...
+                        </>
+                      ) : (
+                        `💳 Pay ${amount} ETH`
+                      )}
+                    </button>
+
+                    <button
+                      className={`${styles.button} ${styles.buttonSecondary}`}
+                      onClick={() => {
+                        setWalletAddress('')
+                        setBalance('')
+                      }}
+                      style={{ width: '100%' }}
+                    >
+                      Disconnect Wallet
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
-        )}
-      </Modal.Body>
-    </Modal>
+        </div>
+      )}
+    </>
   )
 }
