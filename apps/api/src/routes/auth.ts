@@ -53,7 +53,7 @@ router.post(
         return res.status(409).json({ error: 'Email already registered' })
       }
 
-      const passwordHash = await bcrypt.hash(password, 14)
+      const passwordHash = await bcrypt.hash(password, 12)
 
       const user = await prisma.user.create({
         data: {
@@ -65,7 +65,9 @@ router.post(
       })
 
       const tokens = generateTokens(user)
-      await storeSession(user.id, tokens, req as any)
+      storeSession(user.id, tokens, req as any).catch((error) => {
+        console.error('Failed to store session:', error)
+      })
 
       return res.status(201).json({
         message: 'Registration successful',
@@ -102,8 +104,6 @@ router.post(
 
       const validPassword = await bcrypt.compare(password, user.passwordHash)
       if (!validPassword) {
-        // Artificial delay to prevent timing attacks
-        await new Promise(r => setTimeout(r, 200))
         return res.status(401).json({ error: 'Invalid credentials' })
       }
 
@@ -133,14 +133,20 @@ router.post(
         mfaVerified = true
       }
 
-      // Update last login
-      await prisma.user.update({
-        where: { id: user.id },
-        data: { lastLoginAt: new Date() },
-      })
-
+      // Generate tokens (fast, ~5ms)
       const tokens = generateTokens(user, mfaVerified)
-      await storeSession(user.id, tokens, req as any)
+
+      // Update last login timestamp and store session in background (don't wait)
+      Promise.all([
+        prisma.user.update({
+          where: { id: user.id },
+          data: { lastLoginAt: new Date() },
+          select: { id: true },
+        }),
+        storeSession(user.id, tokens, req as any),
+      ]).catch((error) => {
+        console.error('Failed to update session:', error)
+      })
 
       return res.json({
         user: {
