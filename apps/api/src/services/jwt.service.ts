@@ -84,20 +84,36 @@ export function generateTokens(user: User, mfaVerified = false): TokenPair {
 export async function storeSession(
   userId: string,
   tokens: TokenPair,
-  req: { ip?: string; headers: { 'user-agent'?: string } }
+  req: { ip?: string; headers: { 'user-agent'?: string } },
+  async?: boolean
 ) {
-  const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) // 7 days
+  const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
 
-  await prisma.session.create({
-    data: {
-      userId,
-      token: tokens.accessToken,
-      refreshToken: tokens.refreshToken,
-      ipAddress: req.ip,
-      userAgent: req.headers['user-agent'],
-      expiresAt,
-    },
-  })
+  if (async) {
+    // Fire and forget - don't await
+    prisma.session.create({
+      data: {
+        userId,
+        token: tokens.accessToken,
+        refreshToken: tokens.refreshToken,
+        ipAddress: req.ip,
+        userAgent: req.headers['user-agent'],
+        expiresAt,
+      },
+    }).catch(err => console.error('Session store failed:', err))
+  } else {
+    // Block and wait
+    await prisma.session.create({
+      data: {
+        userId,
+        token: tokens.accessToken,
+        refreshToken: tokens.refreshToken,
+        ipAddress: req.ip,
+        userAgent: req.headers['user-agent'],
+        expiresAt,
+      },
+    })
+  }
 }
 
 export async function rotateRefreshToken(refreshToken: string): Promise<TokenPair | null> {

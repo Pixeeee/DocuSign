@@ -11,8 +11,6 @@ interface FormData {
   confirmPassword: string
   firstName: string
   lastName: string
-  company: string
-  role: string
   agreedToTerms: boolean
 }
 
@@ -103,8 +101,6 @@ export default function RegisterPage() {
     confirmPassword: '',
     firstName: '',
     lastName: '',
-    company: '',
-    role: '',
     agreedToTerms: false,
   })
 
@@ -187,8 +183,6 @@ export default function RegisterPage() {
           lastName: form.lastName,
           email: form.email,
           password: form.password,
-          company: form.company,
-          role: form.role,
         }
       )
 
@@ -376,42 +370,6 @@ export default function RegisterPage() {
                 </div>
               </div>
 
-              <div className={styles.fieldRow}>
-                <div className={styles.field}>
-                  <label className={styles.label}>
-                    Company <span style={{ color: 'var(--text-muted)', fontWeight: 300 }}>(optional)</span>
-                  </label>
-                  <input
-                    type="text"
-                    name="company"
-                    value={form.company}
-                    onChange={handleChange}
-                    placeholder="Your company"
-                    className={styles.input}
-                  />
-                </div>
-              </div>
-
-              <div className={styles.fieldRow}>
-                <div className={styles.field}>
-                  <label className={styles.label}>
-                    Role <span style={{ color: 'var(--text-muted)', fontWeight: 300 }}>(optional)</span>
-                  </label>
-                  <select
-                    name="role"
-                    value={form.role}
-                    onChange={handleChange}
-                    className={`${styles.input} ${styles.select}`}
-                  >
-                    <option value="">Select a role</option>
-                    <option value="owner">Business Owner</option>
-                    <option value="manager">Manager</option>
-                    <option value="employee">Employee</option>
-                    <option value="other">Other</option>
-                  </select>
-                </div>
-              </div>
-
               <div style={{ display: 'flex', gap: '12px', marginTop: '20px' }}>
                 <button type="button" onClick={handleBack} className={styles.secondaryBtn}>
                   Back
@@ -468,11 +426,6 @@ export default function RegisterPage() {
                   <p style={{ margin: '4px 0', fontSize: '14px', color: '#080808' }}>
                     {form.firstName} {form.lastName}
                   </p>
-                  {form.company && (
-                    <p style={{ margin: '4px 0', fontSize: '14px', color: '#080808' }}>
-                      {form.company}
-                    </p>
-                  )}
                 </div>
               </div>
 

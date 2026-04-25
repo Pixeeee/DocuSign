@@ -1,5 +1,0 @@
-﻿{
-  "framework": "nextjs",
-  "buildCommand": "bash apps/web/build.sh",
-  "outputDirectory": "apps/web/.next"
-}

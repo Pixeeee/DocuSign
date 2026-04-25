@@ -42,7 +42,6 @@ const loginSchema = z.object({
 
 router.post(
   '/register',
-  auditLog({ action: 'USER_REGISTER' }),
   async (req: Request, res: Response) => {
     try {
       const { email, password, firstName, lastName } = registerSchema.parse(req.body)
@@ -53,7 +52,7 @@ router.post(
         return res.status(409).json({ error: 'Email already registered' })
       }
 
-      const passwordHash = await bcrypt.hash(password, 12)
+      const passwordHash = await bcrypt.hash(password, 10)
 
       const user = await prisma.user.create({
         data: {
@@ -65,9 +64,7 @@ router.post(
       })
 
       const tokens = generateTokens(user)
-      storeSession(user.id, tokens, req as any).catch((error) => {
-        console.error('Failed to store session:', error)
-      })
+      storeSession(user.id, tokens, req as any, true)
 
       return res.status(201).json({
         message: 'Registration successful',
@@ -92,7 +89,6 @@ router.post(
 
 router.post(
   '/login',
-  auditLog({ action: 'USER_LOGIN' }),
   async (req: Request, res: Response) => {
     try {
       const { email, password, totpCode } = loginSchema.parse(req.body)
@@ -136,17 +132,15 @@ router.post(
       // Generate tokens (fast, ~5ms)
       const tokens = generateTokens(user, mfaVerified)
 
-      // Update last login timestamp and store session in background (don't wait)
+      // Fire and forget - don't wait for DB writes
       Promise.all([
         prisma.user.update({
           where: { id: user.id },
           data: { lastLoginAt: new Date() },
           select: { id: true },
         }),
-        storeSession(user.id, tokens, req as any),
-      ]).catch((error) => {
-        console.error('Failed to update session:', error)
-      })
+        storeSession(user.id, tokens, req as any, true),
+      ]).catch(err => console.error('Background ops failed:', err))
 
       return res.json({
         user: {

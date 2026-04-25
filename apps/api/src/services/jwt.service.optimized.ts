@@ -91,7 +91,7 @@ export function generateTokens(user: User, mfaVerified = false): TokenPair {
 
   const accessToken = jwt.sign(accessPayload, privateKey, {
     algorithm: 'RS256',
-    expiresIn: (process.env.JWT_EXPIRES_IN || '15m') as jwt.SignOptions['expiresIn'],
+    expiresIn: (process.env.JWT_EXPIRES_IN || '1h') as jwt.SignOptions['expiresIn'],
     issuer: 'esign-api',
     audience: 'esign-web',
   })
@@ -110,7 +110,7 @@ export function generateTokens(user: User, mfaVerified = false): TokenPair {
   return {
     accessToken,
     refreshToken,
-    expiresIn: 15 * 60, // 15 minutes in seconds
+    expiresIn: 60 * 60, // 1 hour in seconds
   }
 }
 

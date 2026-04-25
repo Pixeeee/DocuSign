@@ -6,6 +6,8 @@ import useSWR from 'swr'
 import type { Role, PlanType } from '@esign/db'
 import DocumentUpload from '@/components/DocumentUpload'
 import DocumentList from '@/components/DocumentList'
+import { useTokenRefresh } from '@/lib/useTokenRefresh'
+import { storeTokens } from '@/lib/tokenUtils'
 import styles from './dashboard.module.css'
 
 interface ExtendedUser {
@@ -62,6 +64,20 @@ export default function DashboardClient({ user }: { user: User }) {
       console.log('[Dashboard] Token persisted to localStorage')
     }
   }, [session])
+
+  // Automatically refresh token before it expires
+  useTokenRefresh({
+    accessToken,
+    onTokenRefreshed: (newAccessToken, newRefreshToken) => {
+      console.log('[Dashboard] Token auto-refreshed')
+      setAccessToken(newAccessToken)
+      storeTokens(newAccessToken, newRefreshToken)
+    },
+    onRefreshFailed: () => {
+      console.error('[Dashboard] Token refresh failed - user may need to re-login')
+      signOut({ redirect: true, callbackUrl: '/auth/login' })
+    },
+  })
 
   const fetcher = (url: string) => {
     const apiUrl = `${process.env.NEXT_PUBLIC_API_URL}${url}`
