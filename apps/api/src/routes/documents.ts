@@ -290,6 +290,43 @@ router.get(
   }
 )
 
+router.get(
+  '/:id/content',
+  authenticate,
+  requireMFA,
+  async (req: AuthenticatedRequest, res: Response) => {
+    const document = await prisma.document.findFirst({
+      where: {
+        id: getParam(req, 'id'),
+        uploadedById: req.user!.id,
+      },
+    })
+
+    if (!document) {
+      return res.status(404).json({ error: 'Document not found' })
+    }
+
+    try {
+      const s3Key = document.s3SignedKey || document.s3Key
+      const fileBuffer = await downloadFromS3(s3Key)
+
+      res.setHeader('Content-Type', 'application/pdf')
+      res.setHeader('Content-Disposition', `inline; filename="${encodeURIComponent(document.fileName)}"`)
+      res.setHeader('Content-Length', fileBuffer.length)
+      res.setHeader('Cache-Control', 'private, no-store')
+      return res.send(fileBuffer)
+    } catch (error) {
+      logger.error('Document preview stream failed', {
+        error: error instanceof Error ? error.message : String(error),
+        documentId: getParam(req, 'id'),
+        userId: req.user?.id,
+      })
+
+      return res.status(500).json({ error: 'Failed to load document preview' })
+    }
+  }
+)
+
 // ─── Delete Document ───────────────────────────────────────────
 
 router.delete(

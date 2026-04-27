@@ -4,7 +4,6 @@ import { useState, useRef, useEffect } from 'react'
 import { Document, Page, pdfjs } from 'react-pdf'
 import 'react-pdf/dist/esm/Page/TextLayer.css'
 import 'react-pdf/dist/esm/Page/AnnotationLayer.css'
-import axios from 'axios'
 import styles from './PdfSignatureViewer.module.css'
 
 // Set PDF.js worker from CDN (react-pdf v9 uses pdf.js v4.x)
@@ -28,7 +27,11 @@ export default function PdfSignatureViewer({
   onHide,
   onPositionSelected,
 }: Props) {
-  const [pdfUrl, setPdfUrl] = useState<string | null>(null)
+  const [pdfFile, setPdfFile] = useState<{
+    url: string
+    httpHeaders: Record<string, string>
+    withCredentials: boolean
+  } | null>(null)
   const [numPages, setNumPages] = useState(0)
   const [currentPage, setCurrentPage] = useState(1)
   const [marker, setMarker] = useState<{ x: number; y: number } | null>(null)
@@ -40,23 +43,19 @@ export default function PdfSignatureViewer({
   useEffect(() => {
     if (!show) return
 
-    const fetchPdfUrl = async () => {
-      setLoading(true)
-      setError('')
-      try {
-        const { data } = await axios.get(
-          `${process.env.NEXT_PUBLIC_API_URL}/api/documents/${documentId}/download`,
-          { headers: { Authorization: `Bearer ${accessToken}` } }
-        )
-        setPdfUrl(data.url)
-      } catch {
-        setError('Failed to load document. Please try again.')
-      } finally {
-        setLoading(false)
-      }
+    if (!accessToken) {
+      setError('Not authenticated. Please log in again.')
+      setLoading(false)
+      return
     }
 
-    fetchPdfUrl()
+    setLoading(true)
+    setError('')
+    setPdfFile({
+      url: `${process.env.NEXT_PUBLIC_API_URL}/api/documents/${documentId}/content`,
+      httpHeaders: { Authorization: `Bearer ${accessToken}` },
+      withCredentials: false,
+    })
 
     // Reset state when reopening
     setCurrentPage(1)
@@ -125,18 +124,18 @@ export default function PdfSignatureViewer({
             </div>
           )}
 
-          {loading && !pdfUrl && (
+          {loading && !pdfFile && (
             <div className={styles.loadingBox}>
               <div className={styles.spinner} />
               <span>Loading document...</span>
             </div>
           )}
 
-          {pdfUrl && (
+          {pdfFile && (
             <div className={styles.pdfContainer}>
               {/* @ts-ignore — react-pdf v9 type mismatch with React 18 */}
               <Document
-                file={pdfUrl}
+                file={pdfFile}
                 onLoadSuccess={onDocumentLoadSuccess}
                 loading={null}
                 error={
