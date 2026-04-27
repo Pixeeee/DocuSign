@@ -2,9 +2,13 @@ import crypto from 'crypto'
 import fs from 'fs'
 import path from 'path'
 
+function normalizePemKey(key: string): string {
+  return key.replace(/\\n/g, '\n')
+}
+
 function loadKey(keyEnv: string | undefined, pathEnv: string | undefined, defaultPaths: string[]): string {
   if (keyEnv) {
-    return keyEnv
+    return normalizePemKey(keyEnv)
   }
 
   const keyPath = pathEnv

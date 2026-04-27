@@ -29,6 +29,8 @@ interface Props {
   signaturePage?: number
   signatureX?: number
   signatureY?: number
+  signatureWidth?: number
+  signatureHeight?: number
 }
 
 export default function SignatureModal({
@@ -39,6 +41,8 @@ export default function SignatureModal({
   signaturePage = 1,
   signatureX = 100,
   signatureY = 100,
+  signatureWidth = 200,
+  signatureHeight = 80,
 }: Props) {
   const { data: session } = useSession()
   const sigCanvasRef = useRef<SignatureCanvas>(null)
@@ -60,6 +64,13 @@ export default function SignatureModal({
     const token = sessionUser?.accessToken || (typeof window !== 'undefined' ? localStorage.getItem('accessToken') : '') || ''
     setAccessToken(token)
   }, [session])
+
+  // Clear signature when modal opens to ensure fresh canvas
+  useEffect(() => {
+    if (show && sigCanvasRef.current) {
+      sigCanvasRef.current.clear()
+    }
+  }, [show])
 
   const clearSignature = () => {
     sigCanvasRef.current?.clear()
@@ -100,15 +111,14 @@ export default function SignatureModal({
             page: signaturePage,
             x: signatureX,
             y: signatureY,
-            width: 200,
-            height: 80,
+            width: signatureWidth,
+            height: signatureHeight,
           },
         },
         { headers }
       )
 
       if (response.status === 402) {
-        // Should not happen after payment, but handle anyway
         setError('Payment verification failed. Please try again.')
         return
       }
@@ -149,7 +159,6 @@ export default function SignatureModal({
     setSigning(true)
     setError('')
 
-    // Retry signature with payment token
     await performSignature(token)
   }
 
@@ -220,10 +229,20 @@ export default function SignatureModal({
                       <SignatureCanvas
                         ref={sigCanvasRef}
                         penColor="#4A7C5E"
+                        minWidth={2}
+                        maxWidth={4}
                         canvasProps={{
-                          width: 600,
-                          height: 200,
                           className: styles.canvas,
+                          style: { 
+                            touchAction: 'none', 
+                            cursor: 'crosshair',
+                          },
+                        }}
+                        onBegin={() => {
+                          console.log('[SignatureCanvas] Drawing started')
+                        }}
+                        onEnd={() => {
+                          console.log('[SignatureCanvas] Drawing completed')
                         }}
                       />
                     </div>

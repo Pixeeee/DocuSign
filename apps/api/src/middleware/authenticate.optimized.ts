@@ -20,6 +20,10 @@ let cachedPublicKey: string | null = null
 let keysLoadedAt = 0
 const KEY_CACHE_DURATION = 3600000
 
+function normalizePemKey(key: string): string {
+  return key.replace(/\\n/g, '\n')
+}
+
 function getPublicKey(): string {
   const now = Date.now()
   
@@ -28,7 +32,7 @@ function getPublicKey(): string {
     const pathEnv = process.env.JWT_PUBLIC_KEY_PATH
 
     if (keyEnv) {
-      cachedPublicKey = keyEnv
+      cachedPublicKey = normalizePemKey(keyEnv)
     } else if (pathEnv) {
       cachedPublicKey = fs.readFileSync(path.resolve(pathEnv), 'utf8')
     } else {

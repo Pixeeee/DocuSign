@@ -1,5 +1,6 @@
 import type { AuthOptions, DefaultUser } from 'next-auth'
 import CredentialsProvider from 'next-auth/providers/credentials'
+import GoogleProvider from 'next-auth/providers/google'
 import type { Role, PlanType } from '@esign/db'
 import axios from 'axios'
 
@@ -14,6 +15,10 @@ interface ExtendedUser extends DefaultUser {
 
 export const authOptions: AuthOptions = {
   providers: [
+    GoogleProvider({
+      clientId: process.env.GOOGLE_CLIENT_ID || '',
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET || '',
+    }),
     CredentialsProvider({
       name: 'credentials',
       credentials: {
@@ -87,6 +92,36 @@ export const authOptions: AuthOptions = {
   callbacks: {
     async signIn({ user, account }) {
       console.log('[NextAuth signIn callback] user:', user?.id, 'account:', account?.provider)
+      
+      // Handle Google OAuth
+      if (account?.provider === 'google' && user.email) {
+        try {
+          const apiUrl = `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'}/api/auth/google`
+          
+          const response = await axios.post(apiUrl, {
+            email: user.email,
+            name: user.name,
+            googleId: account.providerAccountId,
+            image: user.image,
+          })
+          
+          const { user: dbUser, accessToken, refreshToken } = response.data
+          
+          if (accessToken && refreshToken) {
+            user.id = dbUser.id
+            user.email = dbUser.email
+            ;(user as any).accessToken = accessToken
+            ;(user as any).refreshToken = refreshToken
+            ;(user as any).role = dbUser.role
+            ;(user as any).plan = dbUser.plan
+            ;(user as any).totpEnabled = dbUser.totpEnabled
+          }
+        } catch (error) {
+          console.error('[NextAuth] Google sign-in error:', error)
+          return false
+        }
+      }
+      
       return true
     },
     async jwt({ token, user }) {

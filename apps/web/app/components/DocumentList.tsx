@@ -7,6 +7,7 @@ import type { Role, PlanType } from '@esign/db'
 import { formatDistanceToNow, format } from 'date-fns'
 import axios from 'axios'
 import SignatureModal from './SignatureModal'
+import PdfSignatureViewer from './PdfSignatureViewer'
 import styles from './DocumentList.module.css'
 
 interface ExtendedUser {
@@ -70,6 +71,8 @@ function formatBytes(bytes: number): string {
 export default function DocumentList({ documents, onRefresh }: Props) {
   const { data: session } = useSession()
   const [signingDocId, setSigningDocId] = useState<string | null>(null)
+  const [pdfViewerDocId, setPdfViewerDocId] = useState<string | null>(null)
+  const [signaturePosition, setSignaturePosition] = useState<{ page: number; x: number; y: number; width: number; height: number } | null>(null)
   const [verifyDoc, setVerifyDoc] = useState<Document | null>(null)
   const [downloadingId, setDownloadingId] = useState<string | null>(null)
   const [deletingId, setDeletingId] = useState<string | null>(null)
@@ -229,7 +232,7 @@ export default function DocumentList({ documents, onRefresh }: Props) {
                     {['DRAFT', 'PENDING_SIGNATURE', 'PARTIALLY_SIGNED'].includes(doc.status) && (
                       <button
                         className={styles.actionButton}
-                        onClick={() => setSigningDocId(doc.id)}
+                        onClick={() => setPdfViewerDocId(doc.id)}
                         title="Sign document"
                       >
                         ✍️
@@ -271,15 +274,38 @@ export default function DocumentList({ documents, onRefresh }: Props) {
         </table>
       </div>
 
+      {pdfViewerDocId && (
+        <PdfSignatureViewer
+          documentId={pdfViewerDocId}
+          accessToken={accessToken}
+          show={!!pdfViewerDocId}
+          onHide={() => setPdfViewerDocId(null)}
+          onPositionSelected={(pos) => {
+            setPdfViewerDocId(null)
+            setSignaturePosition(pos)
+            setSigningDocId(pdfViewerDocId)
+          }}
+        />
+      )}
+
       {signingDocId && (
         <SignatureModal
           documentId={signingDocId}
           show={!!signingDocId}
-          onHide={() => setSigningDocId(null)}
+          onHide={() => {
+            setSigningDocId(null)
+            setSignaturePosition(null)
+          }}
           onSigned={() => {
             setSigningDocId(null)
+            setSignaturePosition(null)
             onRefresh()
           }}
+          signaturePage={signaturePosition?.page ?? 1}
+          signatureX={signaturePosition?.x ?? 100}
+          signatureY={signaturePosition?.y ?? 100}
+          signatureWidth={signaturePosition?.width ?? 200}
+          signatureHeight={signaturePosition?.height ?? 80}
         />
       )}
 

@@ -42,6 +42,7 @@ const loginSchema = z.object({
 
 router.post(
   '/register',
+  auditLog({ action: 'USER_REGISTER' }),
   async (req: Request, res: Response) => {
     try {
       const { email, password, firstName, lastName } = registerSchema.parse(req.body)
@@ -52,7 +53,7 @@ router.post(
         return res.status(409).json({ error: 'Email already registered' })
       }
 
-      const passwordHash = await bcrypt.hash(password, 10)
+      const passwordHash = await bcrypt.hash(password, 12)
 
       const user = await prisma.user.create({
         data: {
@@ -64,7 +65,9 @@ router.post(
       })
 
       const tokens = generateTokens(user)
-      storeSession(user.id, tokens, req as any, true)
+      storeSession(user.id, tokens, req as any).catch((error) => {
+        console.error('Failed to store session:', error)
+      })
 
       return res.status(201).json({
         message: 'Registration successful',
@@ -85,10 +88,72 @@ router.post(
   }
 )
 
+// ─── Google OAuth ──────────────────────────────────────────────
+
+const googleAuthSchema = z.object({
+  email: z.string().email(),
+  name: z.string().min(1),
+  googleId: z.string(),
+  image: z.string().optional(),
+})
+
+router.post('/google', async (req: Request, res: Response) => {
+  try {
+    const { email, name, googleId, image } = googleAuthSchema.parse(req.body)
+
+    let user: any = await prisma.user.findUnique({
+      where: { email },
+    })
+
+    if (!user) {
+      const [firstName, ...lastNameParts] = name.split(' ')
+      const lastName = lastNameParts.join(' ') || 'User'
+
+      user = await prisma.user.create({
+        data: {
+          email,
+          firstName,
+          lastName,
+          googleId,
+          avatarUrl: image,
+          isVerified: true,
+          passwordHash: null,
+        },
+      })
+    } else if (!user.googleId) {
+      await prisma.user.update({
+        where: { id: user.id },
+        data: { googleId, avatarUrl: image || user.avatarUrl },
+      })
+    }
+
+    const tokens = generateTokens(user)
+    storeSession(user.id, tokens, req as any, true)
+
+    return res.status(200).json({
+      message: 'Google authentication successful',
+      user: {
+        id: user.id,
+        email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        plan: user.plan,
+        role: user.role,
+        totpEnabled: user.totpEnabled,
+      },
+      ...tokens,
+    })
+  } catch (error) {
+    console.error('Google auth error:', error)
+    return res.status(400).json({ error: 'Google authentication failed' })
+  }
+})
+
 // ─── Login ─────────────────────────────────────────────────────
 
 router.post(
   '/login',
+  auditLog({ action: 'USER_LOGIN' }),
   async (req: Request, res: Response) => {
     try {
       const { email, password, totpCode } = loginSchema.parse(req.body)
@@ -98,8 +163,13 @@ router.post(
         return res.status(401).json({ error: 'Invalid credentials' })
       }
 
+      if (!user.passwordHash) {
+        return res.status(401).json({ error: 'Invalid credentials' })
+      }
+
       const validPassword = await bcrypt.compare(password, user.passwordHash)
       if (!validPassword) {
+        // Artificial delay to prevent timing attacks
         return res.status(401).json({ error: 'Invalid credentials' })
       }
 
@@ -129,18 +199,14 @@ router.post(
         mfaVerified = true
       }
 
-      // Generate tokens (fast, ~5ms)
-      const tokens = generateTokens(user, mfaVerified)
+      // Update last login
+      await prisma.user.update({
+        where: { id: user.id },
+        data: { lastLoginAt: new Date() },
+      })
 
-      // Fire and forget - don't wait for DB writes
-      Promise.all([
-        prisma.user.update({
-          where: { id: user.id },
-          data: { lastLoginAt: new Date() },
-          select: { id: true },
-        }),
-        storeSession(user.id, tokens, req as any, true),
-      ]).catch(err => console.error('Background ops failed:', err))
+      const tokens = generateTokens(user, mfaVerified)
+      await storeSession(user.id, tokens, req as any)
 
       return res.json({
         user: {

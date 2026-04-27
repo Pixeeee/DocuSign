@@ -5,6 +5,10 @@ import path from 'path'
 import { isTokenBlacklisted } from '@esign/utils'
 import { prisma } from '@esign/db'
 
+function normalizePemKey(key: string): string {
+  return key.replace(/\\n/g, '\n')
+}
+
 export interface AuthenticatedRequest extends Request {
   user?: {
     id: string
@@ -22,7 +26,7 @@ export interface AuthenticatedRequest extends Request {
 
 function loadKeyValue(keyEnv: string | undefined, pathEnv: string | undefined, defaultPaths: string[]): string {
   if (keyEnv) {
-    return keyEnv
+    return normalizePemKey(keyEnv)
   }
 
   const keyPath = pathEnv

@@ -4,9 +4,13 @@ import path from 'path'
 import { v4 as uuidv4 } from 'uuid'
 import { prisma, User } from '@esign/db'
 
+function normalizePemKey(key: string): string {
+  return key.replace(/\\n/g, '\n')
+}
+
 function loadKeyValue(keyEnv: string | undefined, pathEnv: string | undefined, defaultPaths: string[]): string {
   if (keyEnv) {
-    return keyEnv
+    return normalizePemKey(keyEnv)
   }
 
   const keyPath = pathEnv

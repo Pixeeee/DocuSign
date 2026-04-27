@@ -172,19 +172,30 @@
   border-radius: 10px;
   overflow:      hidden;
   background:    linear-gradient(135deg, #0F0F0F, #1A1A1A);
-  min-height:    240px;
-  max-height:    320px;
+  height:        240px;
   position:      relative;
   box-shadow:    inset 0 2px 8px rgba(0, 0, 0, 0.4);
   transition:    all 0.3s ease;
+  /* Ensure canvas fills container properly */
+  display:       flex;
+  align-items:   stretch;
 }
 
 .canvas {
   display:       block;
-  width:         100%;
-  height:        100%;
+  width:         100% !important;
+  height:        100% !important;
   cursor:        crosshair;
   background:    white;
+  touch-action:  none;
+  /* Ensure proper positioning and no margin/padding */
+  margin:        0 !important;
+  padding:       0 !important;
+  border:        none !important;
+  /* Ensure canvas coordinate system matches visual position */
+  position:      relative;
+  /* Prevent any scrolling issues within the canvas */
+  overflow:      hidden;
 }
 
 /* Typed Signature */

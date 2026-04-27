@@ -14,9 +14,13 @@ let cachedPublicKey: string | null = null
 let keysLoadedAt = 0
 const KEY_CACHE_DURATION = 3600000 // 1 hour, reload keys periodically for rotation
 
+function normalizePemKey(key: string): string {
+  return key.replace(/\\n/g, '\n')
+}
+
 function loadKeyValue(keyEnv: string | undefined, pathEnv: string | undefined, defaultPaths: string[]): string {
   if (keyEnv) {
-    return keyEnv
+    return normalizePemKey(keyEnv)
   }
 
   const keyPath = pathEnv

@@ -10,6 +10,7 @@
     "start:web": "pnpm --filter @esign/web start",
     "lint": "turbo lint",
     "db:migrate": "pnpm --filter @esign/db migrate",
+    "db:migrate:deploy": "pnpm --filter @esign/db migrate:deploy",
     "db:generate": "pnpm --filter @esign/db generate",
     "db:studio": "pnpm --filter @esign/db studio",
     "postinstall": "pnpm --filter @esign/db run generate"

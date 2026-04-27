@@ -6,7 +6,8 @@ import path from 'path'
 // Try to load from .env.local (local development)
 // On Render/production, env vars are provided by the platform
 const envPath = path.join(process.cwd(), '.env.local')
-const envResult = dotenv.config({ path: envPath })
+const isProduction = process.env.NODE_ENV === 'production'
+const envResult = dotenv.config({ path: envPath, override: !isProduction })
 
 console.log(`[dotenv] Loading from: ${envPath}`)
 console.log(`[dotenv] DATABASE_URL set: ${!!process.env.DATABASE_URL}`)
@@ -27,7 +28,7 @@ async function waitForDatabase() {
     retries++
     
     // Reload dotenv in case it's been set now
-    dotenv.config({ path: envPath })
+    dotenv.config({ path: envPath, override: !isProduction })
   }
 
   if (!process.env.DATABASE_URL) {
