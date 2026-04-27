@@ -52,7 +52,7 @@ services:
       - key: ALLOWED_ORIGINS
         value: https://esign-web.onrender.com
       - key: API_URL
-        value: https://esign-api.onrender.com
+        value: https://docusign-18ok.onrender.com
       - key: TOTP_APP_NAME
         value: ESign
       - key: TOTP_ISSUER
@@ -88,9 +88,9 @@ services:
           name: esign-postgres
           property: connectionString
       - key: API_URL
-        value: https://esign-api.onrender.com
+        value: https://docusign-18ok.onrender.com
       - key: NEXT_PUBLIC_API_URL
-        value: https://esign-api.onrender.com
+        value: https://docusign-18ok.onrender.com
       - key: NEXTAUTH_URL
         value: https://esign-web.onrender.com
       - key: NEXTAUTH_SECRET

@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "turbo dev",
     "build": "node scripts/build.js",
-    "start": "pnpm --filter @esign/api start",
+    "start": "pnpm run db:migrate:deploy && pnpm --filter @esign/api start",
     "start:web": "pnpm --filter @esign/web start",
     "lint": "turbo lint",
     "db:migrate": "pnpm --filter @esign/db migrate",
