@@ -87,6 +87,8 @@ services:
         fromDatabase:
           name: esign-postgres
           property: connectionString
+      - key: API_URL
+        value: https://esign-api.onrender.com
       - key: NEXT_PUBLIC_API_URL
         value: https://esign-api.onrender.com
       - key: NEXTAUTH_URL

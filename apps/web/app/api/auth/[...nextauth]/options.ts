@@ -13,6 +13,45 @@ interface ExtendedUser extends DefaultUser {
   refreshToken?: string
 }
 
+const API_RETRY_DELAYS_MS = [2000, 5000, 10000]
+
+function getApiBaseUrl(): string {
+  return (process.env.API_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000').replace(/\/$/, '')
+}
+
+function isRenderHibernateRateLimit(error: unknown): boolean {
+  if (!axios.isAxiosError(error)) return false
+  return (
+    error.response?.status === 429 &&
+    error.response.headers?.['x-render-routing'] === 'hibernate-rate-limited'
+  )
+}
+
+async function postApi<T>(path: string, data: unknown): Promise<T> {
+  const apiUrl = `${getApiBaseUrl()}${path}`
+  let lastError: unknown
+
+  for (let attempt = 0; attempt <= API_RETRY_DELAYS_MS.length; attempt++) {
+    try {
+      const response = await axios.post<T>(apiUrl, data, { timeout: 20000 })
+      return response.data
+    } catch (error) {
+      lastError = error
+
+      if (!isRenderHibernateRateLimit(error) || attempt === API_RETRY_DELAYS_MS.length) {
+        throw error
+      }
+
+      console.warn(
+        `[NextAuth] API is waking from Render hibernation, retrying ${path} in ${API_RETRY_DELAYS_MS[attempt]}ms`
+      )
+      await new Promise((resolve) => setTimeout(resolve, API_RETRY_DELAYS_MS[attempt]))
+    }
+  }
+
+  throw lastError
+}
+
 export const authOptions: AuthOptions = {
   providers: [
     GoogleProvider({
@@ -33,8 +72,7 @@ export const authOptions: AuthOptions = {
         }
 
         try {
-          const apiUrl = `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'}/api/auth/login`
-          console.log('[NextAuth] Calling', apiUrl, 'with email:', credentials.email)
+          console.log('[NextAuth] Calling /api/auth/login with email:', credentials.email)
           
           const payload: Record<string, string> = {
             email: credentials.email,
@@ -44,16 +82,15 @@ export const authOptions: AuthOptions = {
             payload.totpCode = credentials.totpCode.trim()
           }
 
-          const response = await axios.post(apiUrl, payload)
+          const data = await postApi<any>('/api/auth/login', payload)
 
-          console.log('[NextAuth] Login response status:', response.status)
-          const { user, accessToken, refreshToken } = response.data
+          const { user, accessToken, refreshToken } = data
 
           if (!user || !accessToken) {
-            if (response.data?.mfaRequired) {
+            if (data?.mfaRequired) {
               console.log('[NextAuth] MFA required')
             } else {
-              console.error('[NextAuth] Invalid response: missing user or token', response.data)
+              console.error('[NextAuth] Invalid response: missing user or token', data)
             }
             return null
           }
@@ -96,16 +133,14 @@ export const authOptions: AuthOptions = {
       // Handle Google OAuth
       if (account?.provider === 'google' && user.email) {
         try {
-          const apiUrl = `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'}/api/auth/google`
-          
-          const response = await axios.post(apiUrl, {
+          const response = await postApi<any>('/api/auth/google', {
             email: user.email,
-            name: user.name,
+            name: user.name || user.email,
             googleId: account.providerAccountId,
             image: user.image,
           })
           
-          const { user: dbUser, accessToken, refreshToken } = response.data
+          const { user: dbUser, accessToken, refreshToken } = response
           
           if (accessToken && refreshToken) {
             user.id = dbUser.id
@@ -117,7 +152,12 @@ export const authOptions: AuthOptions = {
             ;(user as any).totpEnabled = dbUser.totpEnabled
           }
         } catch (error) {
-          console.error('[NextAuth] Google sign-in error:', error)
+          console.error('[NextAuth] Google sign-in error:', axios.isAxiosError(error) ? {
+            status: error.response?.status,
+            data: error.response?.data,
+            renderRouting: error.response?.headers?.['x-render-routing'],
+            message: error.message,
+          } : error)
           return false
         }
       }
