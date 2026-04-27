@@ -41,13 +41,14 @@ export async function embedSignatureOnPdf(
 
   const page = pages[position.page - 1]
   const font = await pdfDoc.embedFont(StandardFonts.Helvetica)
+  const { width: pageWidth, height: pageHeight } = page.getSize()
 
   // ── Draw signature box ──────────────────────────────────────
 
-  const boxX = position.x
-  const boxY = position.y
   const boxW = position.width || 200
   const boxH = position.height || 80
+  const boxX = Math.max(0, Math.min(position.x, pageWidth - boxW))
+  const boxY = Math.max(0, Math.min(position.y, pageHeight - boxH))
 
   page.drawRectangle({
     x: boxX,
