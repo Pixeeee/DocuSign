@@ -4,6 +4,11 @@ set -e
 echo "📦 Installing dependencies..."
 pnpm install --prod=false
 
+if [ -z "$DATABASE_URL" ]; then
+  echo "DATABASE_URL is not set during web build; using a temporary Prisma generate URL."
+  export DATABASE_URL="postgresql://postgres:postgres@localhost:5432/esign_build?schema=public"
+fi
+
 echo "📝 Generating Prisma client..."
 pnpm run db:generate
 
