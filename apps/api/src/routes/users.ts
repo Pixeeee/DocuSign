@@ -106,6 +106,9 @@ router.patch(
 
     const user = await prisma.user.findUnique({ where: { id: req.user!.id } })
     if (!user) return res.status(404).json({ error: 'User not found' })
+    if (!user.passwordHash) {
+      return res.status(400).json({ error: 'Password is not configured for this account' })
+    }
 
     const valid = await bcrypt.compare(currentPassword, user.passwordHash)
     if (!valid) {
@@ -146,6 +149,9 @@ router.delete(
 
     const user = await prisma.user.findUnique({ where: { id: req.user!.id } })
     if (!user) return res.status(404).json({ error: 'User not found' })
+    if (!user.passwordHash) {
+      return res.status(400).json({ error: 'Password is not configured for this account' })
+    }
 
     const valid = await bcrypt.compare(password, user.passwordHash)
     if (!valid) return res.status(401).json({ error: 'Invalid password' })

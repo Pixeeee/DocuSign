@@ -193,6 +193,9 @@ router.post(
       if (!user || !user.isActive) {
         return res.status(401).json({ error: 'Invalid credentials' })
       }
+      if (!user.passwordHash) {
+        return res.status(401).json({ error: 'Use Google sign-in for this account' })
+      }
 
       // Start password check immediately (async, don't wait for user details)
       const validPassword = await bcrypt.compare(password, user.passwordHash)
