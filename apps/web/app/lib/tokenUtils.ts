@@ -15,10 +15,20 @@ export function decodeToken(token: string): any {
   try {
     const parts = token.split('.')
     if (parts.length !== 3) return null
-    
-    const decoded = JSON.parse(
-      Buffer.from(parts[1], 'base64').toString('utf-8')
-    )
+
+    const payload = parts[1].replace(/-/g, '+').replace(/_/g, '/')
+    const paddedPayload = payload.padEnd(payload.length + (4 - payload.length % 4) % 4, '=')
+    const decodedText =
+      typeof window !== 'undefined'
+        ? decodeURIComponent(
+            atob(paddedPayload)
+              .split('')
+              .map((char) => `%${char.charCodeAt(0).toString(16).padStart(2, '0')}`)
+              .join('')
+          )
+        : Buffer.from(paddedPayload, 'base64').toString('utf-8')
+
+    const decoded = JSON.parse(decodedText)
     return decoded
   } catch (error) {
     console.error('[TokenUtils] Failed to decode token:', error)
@@ -56,6 +66,17 @@ export function willTokenExpireSoon(token: string, withinMs = 5 * 60 * 1000): bo
   }
 }
 
+function isTokenExpired(token: string): boolean {
+  const expiryMs = getTokenExpiryMs(token)
+  return !!expiryMs && expiryMs <= Date.now()
+}
+
+function pickFreshestToken(...tokens: Array<string | undefined | null>): string {
+  return tokens
+    .filter((token): token is string => !!token && !isTokenExpired(token))
+    .sort((a, b) => (getTokenExpiryMs(b) || 0) - (getTokenExpiryMs(a) || 0))[0] || ''
+}
+
 /**
  * Refresh access token using refresh token
  */
@@ -90,17 +111,14 @@ export async function refreshAccessToken(
  * Get current access token from session or storage
  */
 export function getAccessToken(session: any): string {
-  // Check session first (client-side only)
-  if (typeof window !== 'undefined' && session?.user?.accessToken) {
-    return session.user.accessToken
-  }
-  
-  // Fall back to localStorage
   if (typeof window !== 'undefined') {
-    return localStorage.getItem('accessToken') || ''
+    return pickFreshestToken(
+      localStorage.getItem('accessToken'),
+      session?.user?.accessToken
+    )
   }
-  
-  return ''
+
+  return pickFreshestToken(session?.user?.accessToken)
 }
 
 /**

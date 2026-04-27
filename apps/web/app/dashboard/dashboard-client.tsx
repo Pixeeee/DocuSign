@@ -7,7 +7,7 @@ import type { Role, PlanType } from '@esign/db'
 import DocumentUpload from '@/components/DocumentUpload'
 import DocumentList from '@/components/DocumentList'
 import { useTokenRefresh } from '@/lib/useTokenRefresh'
-import { storeTokens } from '@/lib/tokenUtils'
+import { getAccessToken, storeTokens } from '@/lib/tokenUtils'
 import styles from './dashboard.module.css'
 
 interface ExtendedUser {
@@ -47,9 +47,9 @@ export default function DashboardClient({ user }: { user: User }) {
       tokenLength: sessionUser?.accessToken?.length || 0
     })
 
-    const fromSession = sessionUser?.accessToken
+    const fromSession = sessionUser?.accessToken || ''
     const fromStorage = localStorage.getItem('accessToken')
-    const token = fromSession || fromStorage || ''
+    const token = getAccessToken(session)
 
     console.log('[Dashboard] Token sources:', {
       fromSession: !!fromSession,
@@ -60,7 +60,7 @@ export default function DashboardClient({ user }: { user: User }) {
     setAccessToken(token)
 
     if (token && token.length > 0) {
-      localStorage.setItem('accessToken', token)
+      storeTokens(token, sessionUser?.refreshToken || localStorage.getItem('refreshToken') || '')
       console.log('[Dashboard] Token persisted to localStorage')
     }
   }, [session])

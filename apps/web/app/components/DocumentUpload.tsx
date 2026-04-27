@@ -3,21 +3,10 @@
 import { useState, useCallback, useEffect } from 'react'
 import { useSession } from 'next-auth/react'
 import { useDropzone } from 'react-dropzone'
-import type { Role, PlanType } from '@esign/db'
 import axios from 'axios'
 import type { AxiosError } from 'axios'
+import { getAccessToken } from '../lib/tokenUtils'
 import styles from './DocumentUpload.module.css'
-
-interface ExtendedUser {
-  id: string
-  email: string
-  name?: string
-  role: Role
-  plan: PlanType
-  totpEnabled: boolean
-  accessToken?: string
-  refreshToken?: string
-}
 
 interface Props {
   onSuccess: () => void
@@ -34,9 +23,7 @@ export default function DocumentUpload({ onSuccess }: Props) {
 
   // Get access token from session or localStorage (client-side only)
   useEffect(() => {
-    const sessionUser = session?.user as ExtendedUser
-    const token = sessionUser?.accessToken || (typeof window !== 'undefined' ? localStorage.getItem('accessToken') : '') || ''
-    setAccessToken(token)
+    setAccessToken(getAccessToken(session))
   }, [session])
 
   const onDrop = useCallback((acceptedFiles: File[]) => {
@@ -60,10 +47,12 @@ export default function DocumentUpload({ onSuccess }: Props) {
 
   const handleUpload = async () => {
     if (!file || !title.trim()) return
-    if (!accessToken) {
+    const token = getAccessToken(session) || accessToken
+    if (!token) {
       setError('Not authenticated. Please log in again.')
       return
     }
+    setAccessToken(token)
     setUploading(true)
     setError('')
 
@@ -77,7 +66,7 @@ export default function DocumentUpload({ onSuccess }: Props) {
         formData,
         {
           headers: {
-            Authorization: `Bearer ${accessToken}`,
+            Authorization: `Bearer ${token}`,
           },
           onUploadProgress: (e) => {
             const pct = Math.round((e.loaded * 100) / (e.total || 1))

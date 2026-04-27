@@ -8,6 +8,7 @@ import SignatureCanvas from 'react-signature-canvas'
 import axios from 'axios'
 import { v4 as uuidv4 } from 'uuid'
 import X402PaymentModal from './X402PaymentModal'
+import { getAccessToken } from '../lib/tokenUtils'
 import styles from './SignatureModal.module.css'
 
 interface ExtendedUser {
@@ -60,9 +61,7 @@ export default function SignatureModal({
 
   // Get access token from session or localStorage (client-side only)
   useEffect(() => {
-    const sessionUser = session?.user as ExtendedUser
-    const token = sessionUser?.accessToken || (typeof window !== 'undefined' ? localStorage.getItem('accessToken') : '') || ''
-    setAccessToken(token)
+    setAccessToken(getAccessToken(session))
   }, [session])
 
   // Clear signature when modal opens to ensure fresh canvas
@@ -77,10 +76,12 @@ export default function SignatureModal({
   }
 
   const performSignature = async (token?: string) => {
-    if (!accessToken) {
+    const tokenToUse = getAccessToken(session) || accessToken
+    if (!tokenToUse) {
       setError('Not authenticated. Please log in again.')
       return
     }
+    setAccessToken(tokenToUse)
 
     let signatureData: string | undefined
 
@@ -94,7 +95,7 @@ export default function SignatureModal({
 
     const idempotencyKey = uuidv4()
     const headers: Record<string, string> = {
-      Authorization: `Bearer ${accessToken}`,
+      Authorization: `Bearer ${tokenToUse}`,
       'X-Idempotency-Key': idempotencyKey,
     }
 

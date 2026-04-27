@@ -8,6 +8,7 @@ import { formatDistanceToNow, format } from 'date-fns'
 import axios from 'axios'
 import SignatureModal from './SignatureModal'
 import PdfSignatureViewer from './PdfSignatureViewer'
+import { getAccessToken } from '../lib/tokenUtils'
 import styles from './DocumentList.module.css'
 
 interface ExtendedUser {
@@ -81,13 +82,13 @@ export default function DocumentList({ documents, onRefresh }: Props) {
 
   // Get access token from session or localStorage (client-side only)
   useEffect(() => {
-    const sessionUser = session?.user as ExtendedUser
-    const token = sessionUser?.accessToken || (typeof window !== 'undefined' ? localStorage.getItem('accessToken') : '') || ''
-    setAccessToken(token)
+    setAccessToken(getAccessToken(session))
   }, [session])
 
+  const currentAccessToken = () => getAccessToken(session) || accessToken
+
   const authHeader = () => ({
-    Authorization: `Bearer ${accessToken}`,
+    Authorization: `Bearer ${currentAccessToken()}`,
   })
 
   const handleDownload = async (doc: Document) => {
@@ -277,7 +278,7 @@ export default function DocumentList({ documents, onRefresh }: Props) {
       {pdfViewerDocId && (
         <PdfSignatureViewer
           documentId={pdfViewerDocId}
-          accessToken={accessToken}
+          accessToken={currentAccessToken()}
           show={!!pdfViewerDocId}
           onHide={() => setPdfViewerDocId(null)}
           onPositionSelected={(pos) => {
