@@ -9,6 +9,7 @@ import {
 } from '../middleware/authenticate'
 import { auditLog } from '../middleware/audit'
 import { uploadToS3, getPresignedDownloadUrl, downloadFromS3 } from '../services/s3.service'
+import { verifyLocalDownloadToken } from '../services/local-storage.service'
 import { sha3HashFile } from '@esign/crypto'
 import { validatePdf, getPdfPageCount } from '../services/pdf.service'
 import { logger } from '@esign/utils/logger'
@@ -72,6 +73,17 @@ router.post(
     const fileBuffer = req.file.buffer
 
     try {
+      if (teamId) {
+        const membership = await prisma.teamMember.findFirst({
+          where: { teamId, userId: req.user!.id },
+          select: { id: true },
+        })
+
+        if (!membership) {
+          return res.status(403).json({ error: 'You are not a member of this team' })
+        }
+      }
+
       // Validate PDF
       const isValid = await validatePdf(fileBuffer)
       if (!isValid) {
@@ -192,9 +204,11 @@ router.get(
   '/download',
   async (req: Request, res: Response) => {
     const key = req.query.key as string
+    const expires = Number(req.query.expires)
+    const token = req.query.token as string
 
-    if (!key) {
-      return res.status(400).json({ error: 'File key is required' })
+    if (!key || !token || !verifyLocalDownloadToken(key, expires, token)) {
+      return res.status(401).json({ error: 'Invalid or expired download URL' })
     }
 
     try {

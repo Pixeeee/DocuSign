@@ -3,7 +3,13 @@ import { Request, Response, NextFunction } from 'express'
 // when type declarations aren't available to the consumer project.
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const payments = require('@esign/payments') as any
-const { buildX402Header, verifyX402Payment, checkSubscriptionCoverage } = payments
+const {
+  buildX402Header,
+  buildStellarPaymentOption,
+  verifyX402Payment,
+  verifyStellarPayment,
+  checkSubscriptionCoverage,
+} = payments
 import { prisma } from '@esign/db'
 import { getIdempotency, setIdempotency } from '@esign/utils'
 import { AuthenticatedRequest } from './authenticate'
@@ -76,13 +82,16 @@ export async function x402PaymentMiddleware(
       : undefined
 
   const DEFAULT_X402_PRICE = '0.000091'
+  const DEFAULT_STELLAR_PRICE = '0.1'
   const configuredPrice = process.env.X402_PRICE_PER_SIGN
   const price = configuredPrice || DEFAULT_X402_PRICE
+  const stellarPrice = process.env.STELLAR_PRICE_PER_SIGN || DEFAULT_STELLAR_PRICE
+  const resource = `/api/signatures/${documentId}/sign`
 
   if (!paymentHeader) {
     // Return 402 with payment details
-    const resource = `/api/signatures/${documentId}/sign`
     const paymentRequired = buildX402Header(resource, price)
+    const stellarPaymentRequired = buildStellarPaymentOption(resource, stellarPrice)
 
     if (configuredPrice && configuredPrice !== DEFAULT_X402_PRICE) {
       logger.warn('X402 price configured differently than expected', {
@@ -91,19 +100,32 @@ export async function x402PaymentMiddleware(
       })
     }
 
-    logger.info('Payment required for signing', { documentId, userId, price })
+    logger.info('Payment required for signing', {
+      documentId,
+      userId,
+      basePrice: price,
+      stellarPrice,
+    })
 
     return res.status(402).json({
       error: 'Payment Required',
-      message: `Payment of ${price} ETH required to sign this document`,
+      message: 'Payment required to sign this document',
       x402Version: 1,
-      accepts: [paymentRequired],
+      amount: price,
+      currency: 'ETH',
+      stellarAmount: stellarPrice,
+      stellarCurrency: 'XLM',
+      stellarDestination: stellarPaymentRequired.payTo,
+      stellarHorizonUrl: stellarPaymentRequired.horizonUrl,
+      accepts: [paymentRequired, stellarPaymentRequired],
     })
   }
 
   // ── Verify payment ─────────────────────────────────────────
 
-  const resource = `/api/signatures/${documentId}/sign`
+  const isStellarPayment = paymentHeader.startsWith('stellar:')
+  const requiredAmount = isStellarPayment ? stellarPrice : price
+  const paymentCurrency = isStellarPayment ? 'XLM' : 'ETH'
 
   // Check idempotency (prevent double-spending)
   const paymentCacheKey = `payment:${paymentHeader.slice(0, 64)}`
@@ -117,10 +139,17 @@ export async function x402PaymentMiddleware(
     })
   }
 
-  const verification = await verifyX402Payment(paymentHeader, resource, price)
+  const verification = isStellarPayment
+    ? await verifyStellarPayment(paymentHeader, resource, requiredAmount)
+    : await verifyX402Payment(paymentHeader, resource, requiredAmount)
 
   if (!verification.valid) {
-    logger.warn('Invalid X402 payment', { documentId, userId, error: verification.error })
+    logger.warn('Invalid payment', {
+      documentId,
+      userId,
+      currency: paymentCurrency,
+      error: verification.error,
+    })
     return res.status(402).json({
       error: 'Invalid payment',
       message: verification.error || 'Payment verification failed',
@@ -141,7 +170,8 @@ export async function x402PaymentMiddleware(
     userId,
     documentId,
     resource,
-    price,
+    price: requiredAmount,
+    currency: paymentCurrency,
     paymentId: verification.paymentId!,
     txHash: verification.txHash,
   }
@@ -163,8 +193,8 @@ export async function x402PaymentMiddleware(
           documentId,
           type: 'SINGLE_SIGN',
           status: 'COMPLETED',
-          amount: price,
-          currency: 'ETH',
+          amount: requiredAmount,
+          currency: paymentCurrency,
           txHash: verification.txHash,
           x402PaymentId: verification.paymentId!,
           idempotencyKey,
@@ -176,7 +206,8 @@ export async function x402PaymentMiddleware(
         documentId,
         userId,
         txHash: verification.txHash,
-        amount: price,
+        amount: requiredAmount,
+        currency: paymentCurrency,
       })
     } catch (err) {
       logger.error('Failed to persist X402 payment after success', {

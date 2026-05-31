@@ -3,6 +3,7 @@ import bcrypt from 'bcryptjs'
 import speakeasy from 'speakeasy'
 import QRCode from 'qrcode'
 import { Request, Response, Router } from 'express'
+import { OAuth2Client } from 'google-auth-library'
 import { z } from 'zod'
 import { prisma } from '@esign/db'
 import { generateTokens, storeSession, rotateRefreshToken } from '../services/jwt.service'
@@ -11,12 +12,13 @@ import { auditLog } from '../middleware/audit'
 import { blacklistToken } from '@esign/utils'
 import { encryptToString, decryptFromString } from '@esign/crypto'
 
-const router = Router()
+const router: import('express').Router = Router()
+const googleOAuthClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID)
 
 // ─── Validation Schemas ────────────────────────────────────────
 
 const registerSchema = z.object({
-  email: z.string().email(),
+  email: z.string().email().toLowerCase(),
   password: z
     .string()
     .min(12, 'Password must be at least 12 characters')
@@ -91,15 +93,30 @@ router.post(
 // ─── Google OAuth ──────────────────────────────────────────────
 
 const googleAuthSchema = z.object({
-  email: z.string().email(),
-  name: z.string().min(1),
-  googleId: z.string(),
-  image: z.string().optional(),
+  idToken: z.string().min(1),
 })
 
 router.post('/google', async (req: Request, res: Response) => {
   try {
-    const { email, name, googleId, image } = googleAuthSchema.parse(req.body)
+    const { idToken } = googleAuthSchema.parse(req.body)
+
+    if (!process.env.GOOGLE_CLIENT_ID) {
+      return res.status(500).json({ error: 'Google authentication is not configured' })
+    }
+
+    const ticket = await googleOAuthClient.verifyIdToken({
+      idToken,
+      audience: process.env.GOOGLE_CLIENT_ID,
+    })
+    const payload = ticket.getPayload()
+    if (!payload?.email || !payload.sub || !payload.email_verified) {
+      return res.status(401).json({ error: 'Invalid Google identity token' })
+    }
+
+    const email = payload.email.toLowerCase()
+    const name = payload.name || email
+    const googleId = payload.sub
+    const image = payload.picture
 
     let user: any = await prisma.user.findUnique({
       where: { email },
@@ -121,10 +138,12 @@ router.post('/google', async (req: Request, res: Response) => {
         },
       })
     } else if (!user.googleId) {
-      await prisma.user.update({
+      user = await prisma.user.update({
         where: { id: user.id },
         data: { googleId, avatarUrl: image || user.avatarUrl },
       })
+    } else if (user.googleId !== googleId) {
+      return res.status(409).json({ error: 'Google account is already linked to a different identity' })
     }
 
     const tokens = generateTokens(user)

@@ -3,24 +3,12 @@
 import { useRef, useState, useEffect } from 'react'
 import { useSession } from 'next-auth/react'
 import type { AxiosError } from 'axios'
-import type { Role, PlanType } from '@esign/db'
 import SignatureCanvas from 'react-signature-canvas'
 import axios from 'axios'
 import { v4 as uuidv4 } from 'uuid'
 import X402PaymentModal from './X402PaymentModal'
 import { getAccessToken } from '../lib/tokenUtils'
 import styles from './SignatureModal.module.css'
-
-interface ExtendedUser {
-  id: string
-  email: string
-  name?: string
-  role: Role
-  plan: PlanType
-  totpEnabled: boolean
-  accessToken?: string
-  refreshToken?: string
-}
 
 interface Props {
   documentId: string
@@ -55,11 +43,14 @@ export default function SignatureModal({
   const [showPaymentModal, setShowPaymentModal] = useState(false)
   const [paymentRequired, setPaymentRequired] = useState<{
     amount: string
+    stellarAmount?: string
+    stellarDestination?: string
+    stellarHorizonUrl?: string
     message: string
   } | null>(null)
   const [paymentToken, setPaymentToken] = useState<string>('')
 
-  // Get access token from session or localStorage (client-side only)
+  // Get access token from the active NextAuth session.
   useEffect(() => {
     setAccessToken(getAccessToken(session))
   }, [session])
@@ -127,14 +118,24 @@ export default function SignatureModal({
       onSigned()
       onHide()
     } catch (error) {
-      const err = error as AxiosError<{ error?: string; message?: string; amount?: string }>
+      const err = error as AxiosError<{
+        error?: string
+        message?: string
+        amount?: string
+        stellarAmount?: string
+        stellarDestination?: string
+        stellarHorizonUrl?: string
+      }>
       if (err.response?.status === 402) {
         const amount = err.response.data?.amount || '0.000091'
         const message = err.response.data?.message || 'Document signing requires payment'
         
         setPaymentRequired({
-          amount: amount,
-          message: message,
+          amount,
+          stellarAmount: err.response.data?.stellarAmount,
+          stellarDestination: err.response.data?.stellarDestination,
+          stellarHorizonUrl: err.response.data?.stellarHorizonUrl,
+          message,
         })
         setShowPaymentModal(true)
         setSigning(false)
@@ -168,6 +169,9 @@ export default function SignatureModal({
       <X402PaymentModal
         show={showPaymentModal}
         amount={paymentRequired?.amount}
+        stellarAmount={paymentRequired?.stellarAmount}
+        stellarDestination={paymentRequired?.stellarDestination}
+        stellarHorizonUrl={paymentRequired?.stellarHorizonUrl}
         resource={`document/${documentId}`}
         description={paymentRequired?.message || 'Document signing'}
         onPaymentComplete={handlePaymentComplete}

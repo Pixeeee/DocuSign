@@ -83,18 +83,36 @@ export async function authenticate(
     const publicKey = getPublicKey()
     const decoded = jwt.verify(token, publicKey, {
       algorithms: ['RS256'],
+      issuer: 'esign-api',
+      audience: 'esign-web',
     }) as jwt.JwtPayload
 
     if (!decoded.sub) {
       return res.status(401).json({ error: 'Invalid token payload' })
     }
 
+    const user = await prisma.user.findUnique({
+      where: { id: decoded.sub },
+      select: {
+        id: true,
+        email: true,
+        role: true,
+        plan: true,
+        totpEnabled: true,
+        isActive: true,
+      },
+    })
+
+    if (!user?.isActive) {
+      return res.status(401).json({ error: 'User is inactive' })
+    }
+
     req.user = {
-      id: decoded.sub,
-      email: decoded.email,
-      role: decoded.role,
-      plan: decoded.plan,
-      totpEnabled: decoded.totpEnabled,
+      id: user.id,
+      email: user.email,
+      role: user.role,
+      plan: user.plan,
+      totpEnabled: user.totpEnabled,
       mfaVerified: decoded.mfaVerified,
     }
 
@@ -120,6 +138,10 @@ export function requireMFA(
 ) {
   if (!req.user) {
     return res.status(401).json({ error: 'Authentication required' })
+  }
+
+  if (req.apiKey) {
+    return next()
   }
 
   if (req.user.totpEnabled && !req.user.mfaVerified) {
@@ -162,6 +184,22 @@ async function authenticateApiKey(
       return res.status(401).json({ error: 'Invalid API key' })
     }
 
+    const user = await prisma.user.findUnique({
+      where: { id: apiKey.userId },
+      select: {
+        id: true,
+        email: true,
+        role: true,
+        plan: true,
+        totpEnabled: true,
+        isActive: true,
+      },
+    })
+
+    if (!user?.isActive) {
+      return res.status(401).json({ error: 'Invalid API key' })
+    }
+
     // Update last used
     await prisma.apiKey.update({
       where: { id: apiKey.id },
@@ -171,6 +209,14 @@ async function authenticateApiKey(
     req.apiKey = {
       userId: apiKey.userId,
       permissions: apiKey.permissions,
+    }
+    req.user = {
+      id: user.id,
+      email: user.email,
+      role: user.role,
+      plan: user.plan,
+      totpEnabled: user.totpEnabled,
+      mfaVerified: true,
     }
 
     next()

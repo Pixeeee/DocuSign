@@ -1,6 +1,7 @@
 /**
- * Token management utilities
- * Handles automatic token refresh before expiry
+ * Token management utilities.
+ * Refresh tokens stay in the server-side NextAuth JWT and are not persisted
+ * in browser storage.
  */
 
 export interface StoredToken {
@@ -11,7 +12,7 @@ export interface StoredToken {
 /**
  * Decode JWT payload without verification (client-side only)
  */
-export function decodeToken(token: string): any {
+export function decodeToken(token: string): Record<string, unknown> | null {
   try {
     const parts = token.split('.')
     if (parts.length !== 3) return null
@@ -30,8 +31,7 @@ export function decodeToken(token: string): any {
 
     const decoded = JSON.parse(decodedText)
     return decoded
-  } catch (error) {
-    console.error('[TokenUtils] Failed to decode token:', error)
+  } catch {
     return null
   }
 }
@@ -43,10 +43,11 @@ export function getTokenExpiryMs(token: string): number | null {
   try {
     const decoded = decodeToken(token)
     if (!decoded?.exp) return null
+    if (typeof decoded.exp !== 'number') return null
     
     // exp is in seconds, convert to milliseconds
     return decoded.exp * 1000
-  } catch (error) {
+  } catch {
     return null
   }
 }
@@ -61,7 +62,7 @@ export function willTokenExpireSoon(token: string, withinMs = 5 * 60 * 1000): bo
     
     const now = Date.now()
     return expiryMs - now <= withinMs
-  } catch (error) {
+  } catch {
     return false
   }
 }
@@ -108,45 +109,31 @@ export async function refreshAccessToken(
 }
 
 /**
- * Get current access token from session or storage
+ * Get current access token from the active NextAuth session.
  */
-export function getAccessToken(session: any): string {
-  if (typeof window !== 'undefined') {
-    return pickFreshestToken(
-      localStorage.getItem('accessToken'),
-      session?.user?.accessToken
-    )
-  }
-
+export function getAccessToken(session: { user?: { accessToken?: string | null } } | null | undefined): string {
   return pickFreshestToken(session?.user?.accessToken)
 }
 
 /**
- * Get current refresh token from storage
+ * Refresh tokens are intentionally unavailable to client components.
  */
 export function getRefreshToken(): string {
-  if (typeof window !== 'undefined') {
-    return localStorage.getItem('refreshToken') || ''
-  }
   return ''
 }
 
 /**
- * Store tokens in localStorage
+ * No-op kept for existing call sites while token storage is migrated.
  */
-export function storeTokens(accessToken: string, refreshToken: string): void {
-  if (typeof window !== 'undefined') {
-    if (accessToken) localStorage.setItem('accessToken', accessToken)
-    if (refreshToken) localStorage.setItem('refreshToken', refreshToken)
-  }
+export function storeTokens(_accessToken: string, _refreshToken: string): void {
+  void _accessToken
+  void _refreshToken
+  return
 }
 
 /**
- * Clear tokens from storage
+ * No browser token storage is used.
  */
 export function clearTokens(): void {
-  if (typeof window !== 'undefined') {
-    localStorage.removeItem('accessToken')
-    localStorage.removeItem('refreshToken')
-  }
+  return
 }

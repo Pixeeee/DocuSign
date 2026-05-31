@@ -13,7 +13,7 @@ import { auditLog } from '../middleware/audit'
 import { blacklistToken, getRedis } from '@esign/utils'
 import { encryptToString, decryptFromString } from '@esign/crypto'
 
-const router = Router()
+const router: import('express').Router = Router()
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // CONFIGURATION & CONSTANTS

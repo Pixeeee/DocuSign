@@ -25,7 +25,20 @@ export interface X402VerifyResult {
   paymentId?: string
   txHash?: string
   amount?: string
+  currency?: string
   error?: string
+}
+
+export interface StellarPaymentOption {
+  scheme: 'stellar-classic'
+  network: 'stellar:testnet' | 'stellar:pubnet'
+  amount: string
+  currency: 'XLM'
+  resource: string
+  description: string
+  payTo: string
+  horizonUrl: string
+  maxTimeoutSeconds: number
 }
 
 /**
@@ -50,6 +63,28 @@ export function buildX402Header(
       name: 'ESIGN Platform',
       version: '2.0',
     },
+  }
+}
+
+export function buildStellarPaymentOption(
+  resource: string,
+  amountXlm = '0.1',
+  walletAddress?: string
+): StellarPaymentOption {
+  const network = (process.env.STELLAR_NETWORK || 'testnet') === 'pubnet'
+    ? 'stellar:pubnet'
+    : 'stellar:testnet'
+
+  return {
+    scheme: 'stellar-classic',
+    network,
+    amount: amountXlm,
+    currency: 'XLM',
+    resource,
+    description: `Sign document: ${resource}`,
+    payTo: walletAddress || process.env.STELLAR_WALLET_ADDRESS || '',
+    horizonUrl: process.env.STELLAR_HORIZON_URL || 'https://horizon-testnet.stellar.org',
+    maxTimeoutSeconds: 300,
   }
 }
 
@@ -97,6 +132,7 @@ export async function verifyX402Payment(
       paymentId: `dev-${Date.now()}`,
       txHash: `0x${'a'.repeat(64)}`,
       amount,
+      currency: 'ETH',
     }
   }
 
@@ -107,6 +143,10 @@ export async function verifyX402Payment(
     const expectedAmountWei = parseEthAmount(amount)
     const expectedFrom = parsedToken.walletAddress.toLowerCase()
     const expectedTo = process.env.X402_WALLET_ADDRESS?.toLowerCase()
+
+    if (!expectedTo) {
+      return { valid: false, error: 'X402_WALLET_ADDRESS is not configured' }
+    }
 
     try {
       const response = await fetch(rpcUrl, {
@@ -124,7 +164,7 @@ export async function verifyX402Payment(
         return { valid: false, error: `RPC provider returned ${response.status}` }
       }
 
-      const payload = await response.json()
+      const payload: any = await response.json()
       const tx = payload.result
 
       if (!tx) {
@@ -139,7 +179,7 @@ export async function verifyX402Payment(
         return { valid: false, error: 'Transaction recipient is missing' }
       }
 
-      if (expectedTo && tx.to.toLowerCase() !== expectedTo) {
+      if (tx.to.toLowerCase() !== expectedTo) {
         return { valid: false, error: 'Transaction recipient does not match configured X402 wallet' }
       }
 
@@ -160,6 +200,7 @@ export async function verifyX402Payment(
         paymentId: parsedToken.txHash,
         txHash: parsedToken.txHash,
         amount,
+        currency: 'ETH',
       }
     } catch (error: any) {
       return { valid: false, error: error.message }
@@ -184,13 +225,109 @@ export async function verifyX402Payment(
       return { valid: false, error: `Facilitator error: ${response.status}` }
     }
 
-    const data = await response.json()
+    const data: any = await response.json()
 
     return {
       valid: data.valid === true,
       paymentId: data.paymentId,
       txHash: data.txHash,
       amount: data.amount,
+      currency: 'ETH',
+    }
+  } catch (error: any) {
+    return { valid: false, error: error.message }
+  }
+}
+
+function parseStellarToken(paymentToken: string) {
+  if (!paymentToken.startsWith('stellar:')) return null
+  const parts = paymentToken.split(':')
+  if (parts.length !== 4) return null
+
+  const [, txHash, walletAddress, amount] = parts
+  if (!/^[0-9a-f]{64}$/i.test(txHash)) return null
+  if (!/^G[A-Z2-7]{55}$/.test(walletAddress)) return null
+  return { txHash, walletAddress, amount }
+}
+
+function normalizeXlmAmount(amount: string): string {
+  const match = /^([0-9]+)(?:\.([0-9]{1,7})?)?$/.exec(amount)
+  if (!match) throw new Error('Invalid XLM amount format')
+  const whole = match[1].replace(/^0+(?=\d)/, '')
+  const fraction = (match[2] || '').replace(/0+$/, '')
+  return fraction ? `${whole}.${fraction}` : whole
+}
+
+export async function verifyStellarPayment(
+  paymentToken: string,
+  _resource: string,
+  amount: string
+): Promise<X402VerifyResult> {
+  const parsedToken = parseStellarToken(paymentToken)
+  if (!parsedToken) {
+    return { valid: false, error: 'Invalid Stellar payment token' }
+  }
+
+  const expectedTo = process.env.STELLAR_WALLET_ADDRESS
+  if (!expectedTo) {
+    return { valid: false, error: 'STELLAR_WALLET_ADDRESS is not configured' }
+  }
+
+  let expectedAmount: string
+  try {
+    expectedAmount = normalizeXlmAmount(amount)
+  } catch (error: any) {
+    return { valid: false, error: error.message }
+  }
+
+  try {
+    if (normalizeXlmAmount(parsedToken.amount) !== expectedAmount) {
+      return { valid: false, error: 'Payment token amount does not match required amount' }
+    }
+  } catch (error: any) {
+    return { valid: false, error: error.message }
+  }
+
+  const horizonUrl = (process.env.STELLAR_HORIZON_URL || 'https://horizon-testnet.stellar.org').replace(/\/$/, '')
+
+  try {
+    const [txResponse, opsResponse] = await Promise.all([
+      fetch(`${horizonUrl}/transactions/${parsedToken.txHash}`),
+      fetch(`${horizonUrl}/transactions/${parsedToken.txHash}/operations?limit=200`),
+    ])
+
+    if (!txResponse.ok) {
+      return { valid: false, error: `Stellar transaction lookup failed: ${txResponse.status}` }
+    }
+    if (!opsResponse.ok) {
+      return { valid: false, error: `Stellar operation lookup failed: ${opsResponse.status}` }
+    }
+
+    const tx: any = await txResponse.json()
+    const ops: any = await opsResponse.json()
+    const operation = ops?._embedded?.records?.find((op: any) =>
+      op.type === 'payment' &&
+      op.from === parsedToken.walletAddress &&
+      op.to === expectedTo &&
+      op.asset_type === 'native' &&
+      normalizeXlmAmount(op.amount) === expectedAmount
+    )
+
+    if (!tx.successful || !operation) {
+      return { valid: false, error: 'Matching Stellar payment operation was not found' }
+    }
+
+    const createdAt = Date.parse(tx.created_at)
+    if (!Number.isFinite(createdAt) || Date.now() - createdAt > 10 * 60 * 1000) {
+      return { valid: false, error: 'Stellar payment is too old' }
+    }
+
+    return {
+      valid: true,
+      paymentId: `stellar:${parsedToken.txHash}`,
+      txHash: parsedToken.txHash,
+      amount: expectedAmount,
+      currency: 'XLM',
     }
   } catch (error: any) {
     return { valid: false, error: error.message }
@@ -212,14 +349,22 @@ export async function checkSubscriptionCoverage(
 
   // Check team subscription
   if (teamId) {
-    const subscription = await prisma.subscription.findFirst({
+    const member = await prisma.teamMember.findFirst({
+      where: { teamId, userId },
+      select: { id: true },
+    })
+
+    if (!member) return false
+
+    const subscriptions = await prisma.subscription.findMany({
       where: {
         teamId,
         status: 'active',
         currentPeriodEnd: { gt: new Date() },
-        signaturesUsed: { lt: prisma.subscription.fields.signaturesLimit as any },
       },
+      orderBy: { currentPeriodEnd: 'desc' },
     })
+    const subscription = subscriptions.find((item: any) => item.signaturesUsed < item.signaturesLimit)
 
     if (subscription) {
       // Increment usage counter

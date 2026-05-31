@@ -22,7 +22,7 @@ function getParam(req: Request, name: string): string | undefined {
 }
 
 const signSchema = z.object({
-  signatureData: z.string().optional(), // base64 image of signature
+  signatureData: z.string().max(2_000_000).optional(), // base64 image of signature
   position: z.object({
     page: z.number().int().min(1),
     x: z.number().min(0),
@@ -87,8 +87,16 @@ router.post(
 
       // ── Embed signature ─────────────────────────────────────────
 
-      const signatureId = uuidv4()
       const now = new Date()
+      const pendingSignature = await prisma.signature.findFirst({
+        where: {
+          documentId: document.id,
+          signerId: req.user!.id,
+          status: 'PENDING',
+        },
+        select: { id: true },
+      })
+      const signatureId = pendingSignature?.id || uuidv4()
 
       const { signedBuffer, sha3Hash, rsaSignature } = await embedSignatureOnPdf(
         pdfBuffer,
@@ -115,31 +123,61 @@ router.post(
 
       // ── Persist signature record ────────────────────────────────
 
-      const [signature] = await prisma.$transaction([
-        prisma.signature.create({
-          data: {
-            id: signatureId,
+      const signature = await prisma.$transaction(async (tx) => {
+        const signatureRecord = pendingSignature
+          ? await tx.signature.update({
+              where: { id: pendingSignature.id },
+              data: {
+                signatureData: signatureData ? `[base64-truncated:${signatureData.length}]` : null,
+                rsaSignature,
+                sha3HashAtSign: sha3Hash,
+                ipAddress: req.ip || 'unknown',
+                userAgent: req.headers['user-agent'] || undefined,
+                status: 'SIGNED',
+                signedAt: now,
+              },
+            })
+          : await tx.signature.create({
+              data: {
+                id: signatureId,
+                documentId: document.id,
+                signerId: req.user!.id,
+                signatureData: signatureData ? `[base64-truncated:${signatureData.length}]` : null,
+                rsaSignature,
+                sha3HashAtSign: sha3Hash,
+                ipAddress: req.ip || 'unknown',
+                userAgent: req.headers['user-agent'] || undefined,
+                status: 'SIGNED',
+                signedAt: now,
+              },
+            })
+
+        const remainingPending = await tx.signature.count({
+          where: {
             documentId: document.id,
-            signerId: req.user!.id,
-            signatureData: signatureData
-              ? `[base64-truncated:${signatureData.length}]`
-              : null,
-            rsaSignature,
-            sha3HashAtSign: sha3Hash,
-            ipAddress: req.ip || 'unknown',
-            userAgent: req.headers['user-agent'] || undefined,
-            status: 'SIGNED',
-            signedAt: now,
+            status: 'PENDING',
           },
-        }),
-        prisma.document.update({
+        })
+
+        await tx.document.update({
           where: { id: document.id },
           data: {
             s3SignedKey: signedS3Key,
-            status: 'SIGNED',
+            status: remainingPending > 0 ? 'PARTIALLY_SIGNED' : 'SIGNED',
           },
-        }),
-      ])
+        })
+
+        await tx.signatureRequest.updateMany({
+          where: {
+            documentId: document.id,
+            requestedToId: req.user!.id,
+            status: { in: ['PENDING', 'ACCEPTED'] },
+          },
+          data: { status: remainingPending > 0 ? 'ACCEPTED' : 'COMPLETED' },
+        })
+
+        return signatureRecord
+      })
 
       logger.info('Document signed', {
         documentId,
@@ -218,6 +256,9 @@ router.get(
         status: 'SIGNED',
       },
       include: {
+        document: {
+          select: { uploadedById: true },
+        },
         signer: {
           select: { email: true, firstName: true, lastName: true },
         },
@@ -226,6 +267,10 @@ router.get(
 
     if (!signature) {
       return res.status(404).json({ error: 'Signature not found' })
+    }
+
+    if (signature.document.uploadedById !== req.user!.id && signature.signerId !== req.user!.id) {
+      return res.status(403).json({ error: 'Unauthorized to verify this signature' })
     }
 
     const isValid = signature.rsaSignature

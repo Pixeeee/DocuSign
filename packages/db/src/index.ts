@@ -9,13 +9,26 @@ if (!process.env.DATABASE_URL) {
 
 console.log('✓ [DB] DATABASE_URL is set, initializing pool...')
 
+function getRuntimeDatabaseUrl(databaseUrl: string): string {
+  try {
+    const parsed = new URL(databaseUrl)
+    parsed.searchParams.delete('pgbouncer')
+    return parsed.toString()
+  } catch {
+    return databaseUrl
+  }
+}
+
 const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined
 }
 
+const poolMax = Number.parseInt(process.env.DB_POOL_MAX || '5', 10)
+const runtimeDatabaseUrl = getRuntimeDatabaseUrl(process.env.DATABASE_URL)
+
 const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  max: 20,
+  connectionString: runtimeDatabaseUrl,
+  max: Number.isFinite(poolMax) && poolMax > 0 ? poolMax : 5,
   idleTimeoutMillis: 30000,
   connectionTimeoutMillis: 10000, // Increased from 2s to 10s
   statement_timeout: 30000, // Add statement timeout

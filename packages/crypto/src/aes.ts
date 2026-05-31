@@ -8,7 +8,10 @@ const AUTH_TAG_LENGTH = 16
 function getKey(): Buffer {
   const key = process.env.AES_ENCRYPTION_KEY
   if (!key) throw new Error('AES_ENCRYPTION_KEY not set')
-  return Buffer.from(key, 'hex').slice(0, KEY_LENGTH)
+  if (!/^[0-9a-f]{64}$/i.test(key)) {
+    throw new Error('AES_ENCRYPTION_KEY must be 64 hex characters (32 bytes)')
+  }
+  return Buffer.from(key, 'hex')
 }
 
 export interface EncryptedPayload {

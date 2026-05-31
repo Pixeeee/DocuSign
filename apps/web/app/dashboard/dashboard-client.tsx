@@ -3,23 +3,10 @@
 import { useState, useEffect } from 'react'
 import { useSession, signOut } from 'next-auth/react'
 import useSWR from 'swr'
-import type { Role, PlanType } from '@esign/db'
 import DocumentUpload from '@/components/DocumentUpload'
 import DocumentList from '@/components/DocumentList'
-import { useTokenRefresh } from '@/lib/useTokenRefresh'
-import { getAccessToken, storeTokens } from '@/lib/tokenUtils'
+import { getAccessToken } from '@/lib/tokenUtils'
 import styles from './dashboard.module.css'
-
-interface ExtendedUser {
-  id: string
-  email: string
-  name?: string
-  role: Role
-  plan: PlanType
-  totpEnabled: boolean
-  accessToken?: string
-  refreshToken?: string
-}
 
 interface User {
   id: string
@@ -36,53 +23,13 @@ export default function DashboardClient({ user }: { user: User }) {
   const [showUpload, setShowUpload] = useState(false)
   const [accessToken, setAccessToken] = useState('')
 
-  // Get access token from session or localStorage (client-side only)
+  // Get access token from the active NextAuth session.
   useEffect(() => {
-    if (typeof window === 'undefined') return
-
-    const sessionUser = session?.user as ExtendedUser | undefined
-    console.log('[Dashboard] Session user:', {
-      exists: !!sessionUser,
-      hasAccessToken: !!sessionUser?.accessToken,
-      tokenLength: sessionUser?.accessToken?.length || 0
-    })
-
-    const fromSession = sessionUser?.accessToken || ''
-    const fromStorage = localStorage.getItem('accessToken')
-    const token = getAccessToken(session)
-
-    console.log('[Dashboard] Token sources:', {
-      fromSession: !!fromSession,
-      fromStorage: !!fromStorage,
-      final: { length: token.length, preview: token.slice(0, 20) }
-    })
-
-    setAccessToken(token)
-
-    if (token && token.length > 0) {
-      storeTokens(token, sessionUser?.refreshToken || localStorage.getItem('refreshToken') || '')
-      console.log('[Dashboard] Token persisted to localStorage')
-    }
+    setAccessToken(getAccessToken(session))
   }, [session])
-
-  // Automatically refresh token before it expires
-  useTokenRefresh({
-    accessToken,
-    onTokenRefreshed: (newAccessToken, newRefreshToken) => {
-      console.log('[Dashboard] Token auto-refreshed')
-      setAccessToken(newAccessToken)
-      storeTokens(newAccessToken, newRefreshToken)
-    },
-    onRefreshFailed: () => {
-      console.error('[Dashboard] Token refresh failed - user may need to re-login')
-      signOut({ redirect: true, callbackUrl: '/auth/login' })
-    },
-  })
 
   const fetcher = (url: string) => {
     const apiUrl = `${process.env.NEXT_PUBLIC_API_URL}${url}`
-    console.log('[Dashboard] Fetching:', apiUrl, 'with token length:', accessToken?.length || 0)
-
     return fetch(apiUrl, {
       credentials: 'include',
       headers: {
@@ -108,8 +55,8 @@ export default function DashboardClient({ user }: { user: User }) {
 
   const documents = data?.documents || []
   const totalDocs = documents.length
-  const signedCount = documents.filter((d: any) => d.status === 'SIGNED').length
-  const pendingCount = documents.filter((d: any) => d.status === 'PENDING').length
+  const signedCount = documents.filter((d: { status: string }) => d.status === 'SIGNED').length
+  const pendingCount = documents.filter((d: { status: string }) => d.status === 'PENDING').length
 
   return (
     <div className={styles.page}>

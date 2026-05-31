@@ -6,7 +6,10 @@ import { logger } from '@esign/utils/logger'
 const router: import('express').Router = Router()
 
 // Webhook secret from .env
-const WEBHOOK_SECRET = process.env.WEBHOOK_SECRET || ''
+const WEBHOOK_SECRET = process.env.WEBHOOK_SECRET
+if (!WEBHOOK_SECRET) {
+  throw new Error('WEBHOOK_SECRET must be set for webhook verification')
+}
 
 // ─── Signature Verification ────────────────────────────────────
 

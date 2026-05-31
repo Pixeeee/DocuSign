@@ -176,7 +176,7 @@ export default function RegisterPage() {
     setLoading(true)
 
     try {
-      const response = await axios.post(
+      await axios.post(
         `${process.env.NEXT_PUBLIC_API_URL}/api/auth/register`,
         {
           firstName: form.firstName,
@@ -185,10 +185,6 @@ export default function RegisterPage() {
           password: form.password,
         }
       )
-
-      const { accessToken, refreshToken } = response.data
-      if (accessToken) localStorage.setItem('accessToken', accessToken)
-      if (refreshToken) localStorage.setItem('refreshToken', refreshToken)
 
       router.push('/auth/login?registered=true')
     } catch (err) {

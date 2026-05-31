@@ -50,9 +50,14 @@ router.post(
         return res.status(404).json({ error: 'Document not found' })
       }
 
-      // Check if user owns the document or is a team member
+      // Check if user owns the document or is a real member of the document's team
       const isOwner = document.uploadedById === req.user!.id
-      const isTeamMember = body.teamId && document.teamId === body.teamId
+      const isTeamMember = document.teamId
+        ? await prisma.teamMember.findFirst({
+            where: { teamId: document.teamId, userId: req.user!.id },
+            select: { id: true },
+          })
+        : null
 
       if (!isOwner && !isTeamMember) {
         return res.status(403).json({ error: 'Unauthorized to request signatures on this document' })
@@ -67,22 +72,55 @@ router.post(
         return res.status(404).json({ error: 'Requested user not found' })
       }
 
-      // Create the signature request
-      const signatureRequest = await prisma.signatureRequest.create({
-        data: {
+      const existingSignature = await prisma.signature.findFirst({
+        where: {
           documentId: body.documentId,
-          requestedById: req.user!.id,
-          requestedToId: body.requestedToId,
-          teamId: body.teamId,
-          message: body.message,
-          dueDate: body.dueDate ? new Date(body.dueDate) : null,
-          expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days default
+          signerId: body.requestedToId,
+          status: { in: ['PENDING', 'SIGNED'] },
         },
-        include: {
-          document: true,
-          requestedBy: true,
-          requestedTo: true,
-        },
+      })
+
+      if (existingSignature?.status === 'SIGNED') {
+        return res.status(409).json({ error: 'Requested user has already signed this document' })
+      }
+
+      const signatureRequest = await prisma.$transaction(async (tx) => {
+        const createdRequest = await tx.signatureRequest.create({
+          data: {
+            documentId: body.documentId,
+            requestedById: req.user!.id,
+            requestedToId: body.requestedToId,
+            teamId: document.teamId,
+            message: body.message,
+            dueDate: body.dueDate ? new Date(body.dueDate) : null,
+            expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days default
+          },
+          include: {
+            document: true,
+            requestedBy: true,
+            requestedTo: true,
+          },
+        })
+
+        if (!existingSignature) {
+          await tx.signature.create({
+            data: {
+              documentId: body.documentId,
+              signerId: body.requestedToId,
+              sha3HashAtSign: document.sha3Hash,
+              ipAddress: req.ip || 'unknown',
+              userAgent: req.headers['user-agent'] || undefined,
+              status: 'PENDING',
+            },
+          })
+        }
+
+        await tx.document.update({
+          where: { id: body.documentId },
+          data: { status: 'PENDING_SIGNATURE' },
+        })
+
+        return createdRequest
       })
 
       res.status(201).json({

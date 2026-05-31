@@ -21,7 +21,7 @@ export default function DocumentUpload({ onSuccess }: Props) {
   const [error, setError] = useState('')
   const [accessToken, setAccessToken] = useState('')
 
-  // Get access token from session or localStorage (client-side only)
+  // Get access token from the active NextAuth session.
   useEffect(() => {
     setAccessToken(getAccessToken(session))
   }, [session])

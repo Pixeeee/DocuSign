@@ -13,6 +13,25 @@ interface ExtendedUser extends DefaultUser {
   refreshToken?: string
 }
 
+interface ApiAuthResponse {
+  user: {
+    id: string
+    email: string
+    firstName: string
+    lastName: string
+    role: Role
+    plan: PlanType
+    totpEnabled: boolean
+  }
+  accessToken: string
+  refreshToken: string
+}
+
+interface ApiTokenResponse {
+  accessToken: string
+  refreshToken: string
+}
+
 const API_RETRY_DELAYS_MS = [2000, 5000, 10000]
 
 function getApiBaseUrl(): string {
@@ -52,6 +71,33 @@ async function postApi<T>(path: string, data: unknown): Promise<T> {
   throw lastError
 }
 
+function getJwtExpiryMs(token?: unknown): number | null {
+  if (typeof token !== 'string') return null
+
+  try {
+    const payload = token.split('.')[1]
+    if (!payload) return null
+    const decoded = JSON.parse(Buffer.from(payload, 'base64url').toString('utf8'))
+    return typeof decoded.exp === 'number' ? decoded.exp * 1000 : null
+  } catch {
+    return null
+  }
+}
+
+async function refreshApiTokens(refreshToken?: unknown): Promise<ApiTokenResponse | null> {
+  if (typeof refreshToken !== 'string' || !refreshToken) return null
+
+  try {
+    return await postApi<ApiTokenResponse>('/api/auth/refresh', { refreshToken })
+  } catch (error) {
+    console.error('[NextAuth] API token refresh failed:', axios.isAxiosError(error) ? {
+      status: error.response?.status,
+      message: error.message,
+    } : error)
+    return null
+  }
+}
+
 export const authOptions: AuthOptions = {
   providers: [
     GoogleProvider({
@@ -82,7 +128,7 @@ export const authOptions: AuthOptions = {
             payload.totpCode = credentials.totpCode.trim()
           }
 
-          const data = await postApi<any>('/api/auth/login', payload)
+          const data = await postApi<ApiAuthResponse & { mfaRequired?: boolean }>('/api/auth/login', payload)
 
           const { user, accessToken, refreshToken } = data
 
@@ -128,28 +174,26 @@ export const authOptions: AuthOptions = {
   ],
   callbacks: {
     async signIn({ user, account }) {
-      console.log('[NextAuth signIn callback] user:', user?.id, 'account:', account?.provider)
+      console.log('[NextAuth signIn callback] provider:', account?.provider)
       
       // Handle Google OAuth
-      if (account?.provider === 'google' && user.email) {
+      if (account?.provider === 'google' && account.id_token) {
         try {
-          const response = await postApi<any>('/api/auth/google', {
-            email: user.email,
-            name: user.name || user.email,
-            googleId: account.providerAccountId,
-            image: user.image,
+          const response = await postApi<ApiAuthResponse>('/api/auth/google', {
+            idToken: account.id_token,
           })
           
           const { user: dbUser, accessToken, refreshToken } = response
           
           if (accessToken && refreshToken) {
-            user.id = dbUser.id
-            user.email = dbUser.email
-            ;(user as any).accessToken = accessToken
-            ;(user as any).refreshToken = refreshToken
-            ;(user as any).role = dbUser.role
-            ;(user as any).plan = dbUser.plan
-            ;(user as any).totpEnabled = dbUser.totpEnabled
+            const googleUser = user as ExtendedUser
+            googleUser.id = dbUser.id
+            googleUser.email = dbUser.email
+            googleUser.accessToken = accessToken
+            googleUser.refreshToken = refreshToken
+            googleUser.role = dbUser.role
+            googleUser.plan = dbUser.plan
+            googleUser.totpEnabled = dbUser.totpEnabled
           }
         } catch (error) {
           console.error('[NextAuth] Google sign-in error:', axios.isAxiosError(error) ? {
@@ -173,19 +217,29 @@ export const authOptions: AuthOptions = {
         token.totpEnabled = extendedUser.totpEnabled
         token.accessToken = extendedUser.accessToken
         token.refreshToken = extendedUser.refreshToken
+        return token
+      }
+
+      const accessTokenExpiry = getJwtExpiryMs(token.accessToken)
+      if (token.refreshToken && (!accessTokenExpiry || accessTokenExpiry - Date.now() < 60_000)) {
+        const refreshed = await refreshApiTokens(token.refreshToken)
+        if (refreshed?.accessToken && refreshed.refreshToken) {
+          token.accessToken = refreshed.accessToken
+          token.refreshToken = refreshed.refreshToken
+        } else {
+          delete token.accessToken
+          delete token.refreshToken
+        }
       }
       return token
     },
     async session({ session, token }) {
-      console.log('[NextAuth session callback] token has accessToken:', !!token.accessToken)
       if (session.user) {
         session.user.id = token.id as string
         ;(session.user as ExtendedUser).role = token.role as Role
         ;(session.user as ExtendedUser).plan = token.plan as PlanType
         ;(session.user as ExtendedUser).totpEnabled = token.totpEnabled as boolean
         ;(session.user as ExtendedUser).accessToken = token.accessToken as string
-        ;(session.user as ExtendedUser).refreshToken = token.refreshToken as string
-        console.log('[NextAuth session callback] session user token length:', (session.user as ExtendedUser).accessToken?.length || 0)
       }
       return session
     },

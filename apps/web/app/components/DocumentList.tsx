@@ -3,24 +3,12 @@
 import { useState, useEffect } from 'react'
 import { useSession } from 'next-auth/react'
 import type { AxiosError } from 'axios'
-import type { Role, PlanType } from '@esign/db'
 import { formatDistanceToNow, format } from 'date-fns'
 import axios from 'axios'
 import SignatureModal from './SignatureModal'
 import PdfSignatureViewer from './PdfSignatureViewer'
 import { getAccessToken } from '../lib/tokenUtils'
 import styles from './DocumentList.module.css'
-
-interface ExtendedUser {
-  id: string
-  email: string
-  name?: string
-  role: Role
-  plan: PlanType
-  totpEnabled: boolean
-  accessToken?: string
-  refreshToken?: string
-}
 
 interface Signature {
   id: string
@@ -80,7 +68,7 @@ export default function DocumentList({ documents, onRefresh }: Props) {
   const [error, setError] = useState('')
   const [accessToken, setAccessToken] = useState('')
 
-  // Get access token from session or localStorage (client-side only)
+  // Get access token from the active NextAuth session.
   useEffect(() => {
     setAccessToken(getAccessToken(session))
   }, [session])

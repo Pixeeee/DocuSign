@@ -6,7 +6,7 @@ import { z } from 'zod'
 import { prisma } from '@esign/db'
 import { getRedis } from '@esign/utils'
 
-const router = Router()
+const router: import('express').Router = Router()
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // CHECK EMAIL AVAILABILITY (for registration form)

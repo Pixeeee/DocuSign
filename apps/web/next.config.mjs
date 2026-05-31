@@ -8,6 +8,7 @@ loadEnv({ path: path.resolve(__dirname, '../../.env.local'), override: !isProduc
 
 const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'
 const apiOrigin = new URL(apiUrl).origin
+const isDev = process.env.NODE_ENV !== 'production'
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
@@ -24,11 +25,15 @@ const nextConfig = {
           key: 'Content-Security-Policy',
           value: [
             "default-src 'self'",
-            "script-src 'self' 'unsafe-eval' 'unsafe-inline'",
+            `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ''}`,
             "style-src 'self' 'unsafe-inline'",
             "img-src 'self' data: blob: https:",
-            `connect-src 'self' ${apiOrigin}`,
+            `connect-src 'self' ${apiOrigin} https://horizon-testnet.stellar.org https://horizon.stellar.org`,
             "font-src 'self'",
+            "worker-src 'self' blob: https://cdnjs.cloudflare.com",
+            "object-src 'none'",
+            "base-uri 'self'",
+            "frame-ancestors 'none'",
           ].join('; '),
         },
       ],

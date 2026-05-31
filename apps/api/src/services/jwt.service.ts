@@ -126,6 +126,7 @@ export async function rotateRefreshToken(refreshToken: string): Promise<TokenPai
   try {
     const decoded = jwt.verify(refreshToken, publicKey, {
       algorithms: ['RS256'],
+      issuer: 'esign-api',
     }) as jwt.JwtPayload
 
     if (decoded.type !== 'refresh') return null
@@ -135,7 +136,7 @@ export async function rotateRefreshToken(refreshToken: string): Promise<TokenPai
       include: { user: true },
     })
 
-    if (!session || session.expiresAt < new Date()) return null
+    if (!session || session.expiresAt < new Date() || !session.user.isActive) return null
 
     const newTokens = generateTokens(session.user)
 

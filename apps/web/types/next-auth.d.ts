@@ -8,6 +8,7 @@ declare module "next-auth" {
       role: Role;
       plan: PlanType;
       totpEnabled: boolean;
+      accessToken?: string;
     } & DefaultSession["user"];
   }
 
@@ -15,6 +16,8 @@ declare module "next-auth" {
     role: Role;
     plan: PlanType;
     totpEnabled: boolean;
+    accessToken?: string;
+    refreshToken?: string;
   }
 }
 
@@ -24,5 +27,7 @@ declare module "next-auth/jwt" {
     role: Role;
     plan: PlanType;
     totpEnabled: boolean;
+    accessToken?: string;
+    refreshToken?: string;
   }
 }
