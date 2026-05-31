@@ -5,9 +5,11 @@ echo "🔨 Render Build Script"
 echo "   NODE_ENV: $NODE_ENV"
 echo ""
 
+corepack enable
+
 # Install dependencies including dev dependencies (pnpm respects --prod=false over NODE_ENV)
 echo "📦 Installing dependencies (including devDependencies)..."
-pnpm install --prod=false
+pnpm install --frozen-lockfile --prod=false
 
 # Now build with production environment
 echo ""

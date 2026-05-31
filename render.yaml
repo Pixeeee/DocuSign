@@ -10,16 +10,20 @@ services:
     envVars:
       - key: NODE_ENV
         value: production
+      - key: NODE_VERSION
+        value: "22"
       - key: NEXT_TELEMETRY_DISABLED
         value: "1"
-      - key: NODE_VERSION
-        value: 22.22.2
-      - key: NODE_OPTIONS
-        value: "--max-old-space-size=320"
+      - key: PNPM_CONFIG_PROD
+        value: "false"
+      - key: DB_POOL_MAX
+        value: "5"
       - key: DATABASE_URL
-        fromDatabase:
-          name: esign-postgres
-          property: connectionString
+        sync: false
+      - key: DIRECT_URL
+        sync: false
+      - key: REDIS_URL
+        sync: false
       - key: JWT_PRIVATE_KEY
         sync: false
       - key: JWT_PUBLIC_KEY
@@ -28,12 +32,24 @@ services:
         value: 15m
       - key: REFRESH_TOKEN_EXPIRES_IN
         value: 7d
-      - key: AES_ENCRYPTION_KEY
+      - key: NEXTAUTH_SECRET
+        sync: false
+      - key: DOWNLOAD_URL_SECRET
         sync: false
       - key: WEBHOOK_SECRET
-        generateValue: true
+        sync: false
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false
+      - key: ALLOWED_ORIGINS
+        sync: false
+      - key: AES_ENCRYPTION_KEY
+        sync: false
+      - key: STORAGE_PROVIDER
+        value: s3
       - key: AWS_REGION
-        value: us-east-1
+        sync: false
       - key: AWS_ACCESS_KEY_ID
         sync: false
       - key: AWS_SECRET_ACCESS_KEY
@@ -42,72 +58,37 @@ services:
         sync: false
       - key: AWS_KMS_KEY_ID
         sync: false
-      - key: FORCE_LOCAL_STORAGE
-        value: "false"
-      - key: REDIS_URL
-        fromService:
-          name: esign-redis
-          type: redis
-          property: connectionString
-      - key: ALLOWED_ORIGINS
-        value: https://esign-web.onrender.com
-      - key: API_URL
-        value: https://docusign-18ok.onrender.com
+      - key: X402_CHAIN_ID
+        value: "84532"
+      - key: X402_RPC_URL
+        sync: false
+      - key: X402_PRICE_PER_SIGN
+        value: "0.0001"
+      - key: X402_WALLET_ADDRESS
+        sync: false
+      - key: STELLAR_NETWORK
+        value: testnet
+      - key: STELLAR_HORIZON_URL
+        value: https://horizon-testnet.stellar.org
+      - key: STELLAR_WALLET_ADDRESS
+        sync: false
+      - key: STELLAR_PRICE_PER_SIGN
+        value: "1.36"
+      - key: SMTP_HOST
+        sync: false
+      - key: SMTP_PORT
+        value: "587"
+      - key: SMTP_USER
+        sync: false
+      - key: SMTP_PASS
+        sync: false
+      - key: EMAIL_FROM
+        sync: false
       - key: TOTP_APP_NAME
-        value: ESign
+        value: eSign
       - key: TOTP_ISSUER
-        value: ESign
+        value: eSign
       - key: RATE_LIMIT_WINDOW_MS
         value: "900000"
       - key: RATE_LIMIT_MAX
         value: "100"
-      - key: X402_CHAIN_ID
-        value: "84532"
-      - key: X402_RPC_URL
-        value: https://sepolia.base.org
-      - key: X402_FACILITATOR_URL
-        value: https://facilitator.coinbase.com
-      - key: X402_PRICE_PER_SIGN
-        value: "0.000091"
-      - key: X402_WALLET_ADDRESS
-        sync: false
-
-  - type: web
-    name: esign-web
-    runtime: node
-    plan: free
-    buildCommand: bash render-web-build.sh
-    startCommand: pnpm --filter @esign/web start
-    envVars:
-      - key: NODE_ENV
-        value: production
-      - key: NEXT_TELEMETRY_DISABLED
-        value: "1"
-      - key: DATABASE_URL
-        fromDatabase:
-          name: esign-postgres
-          property: connectionString
-      - key: API_URL
-        value: https://docusign-18ok.onrender.com
-      - key: NEXT_PUBLIC_API_URL
-        value: https://docusign-18ok.onrender.com
-      - key: NEXTAUTH_URL
-        value: https://esign-web.onrender.com
-      - key: NEXTAUTH_SECRET
-        generateValue: true
-      - key: GOOGLE_CLIENT_ID
-        sync: false
-      - key: GOOGLE_CLIENT_SECRET
-        sync: false
-      - key: NEXT_PUBLIC_X402_PRICE_PER_SIGN
-        value: "0.000091"
-      - key: NEXT_PUBLIC_X402_WALLET
-        sync: false
-
-  - type: redis
-    name: esign-redis
-    plan: free
-
-databases:
-  - name: esign-postgres
-    plan: free
