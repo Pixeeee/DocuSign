@@ -1,0 +1,5 @@
+{
+  "installCommand": "corepack enable && pnpm install --frozen-lockfile",
+  "buildCommand": "pnpm --filter @esign/utils build && pnpm --filter @esign/crypto build && pnpm --filter @esign/db build && pnpm --filter @esign/payments build && pnpm --filter @esign/web build",
+  "framework": "nextjs"
+}
